@@ -1165,13 +1165,16 @@ export default function App() {
     if (!isAdmin) return;
     try {
       const batch = writeBatch(db);
-      batch.update(doc(db, 'professionals', proId), { 
+      batch.update(doc(db, 'professionals', proId), {
         verificationStatus: 'verified',
+        professionalStatus: 'active',
         isVerified: true,
+        isActive: true,
         updatedAt: serverTimestamp()
       });
-      batch.update(doc(db, 'users', proId), { 
+      batch.update(doc(db, 'users', proId), {
         isVerified: true,
+        role: 'pro',
         updatedAt: serverTimestamp()
       });
       await batch.commit();
@@ -1184,14 +1187,24 @@ export default function App() {
 
   const handleRejectPro = async (proId: string) => {
     if (!isAdmin) return;
+    if (!confirm('Rejeitar este profissional?')) return;
     try {
-      await updateDoc(doc(db, 'professionals', proId), { 
+      const batch = writeBatch(db);
+      batch.update(doc(db, 'professionals', proId), {
         verificationStatus: 'rejected',
+        professionalStatus: 'suspended',
+        isActive: false,
         updatedAt: serverTimestamp()
       });
+      batch.update(doc(db, 'users', proId), {
+        isVerified: false,
+        updatedAt: serverTimestamp()
+      });
+      await batch.commit();
       alert('Profissional rejeitado.');
     } catch (error) {
       console.error(error);
+      alert('Erro ao rejeitar profissional.');
     }
   };
 
@@ -2556,46 +2569,20 @@ export default function App() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                             {pro.professionalStatus === 'blocked' ? (
-                               <button 
-                                 onClick={async () => {
-                                   try {
-                                     await updateDoc(doc(db, 'professionals', pro.id), { professionalStatus: 'active' });
-                                     alert('Profissional desbloqueado e ativado!');
-                                   } catch (err) { console.error(err); }
-                                 }}
-                                 className="px-4 py-2 bg-green-500 text-white rounded-xl font-black uppercase text-[9px] tracking-widest"
-                               >
-                                 Desbloquear
-                               </button>
-                             ) : (
-                               <>
-                                 <button 
-                                   onClick={async () => {
-                                      if (confirm('Deseja realmente bloquear este profissional?')) {
-                                        try {
-                                          await updateDoc(doc(db, 'professionals', pro.id), { professionalStatus: 'blocked' });
-                                          alert('Profissional bloqueado!');
-                                        } catch (err) { console.error(err); }
-                                      }
-                                   }}
-                                   className="p-3 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all"
-                                 >
-                                   <X size={16} />
-                                 </button>
-                                 <button 
-                                   onClick={async () => {
-                                     try {
-                                       await updateDoc(doc(db, 'professionals', pro.id), { professionalStatus: 'active' });
-                                       alert('Profissional aprovado!');
-                                     } catch (err) { console.error(err); }
-                                   }}
-                                   className="p-3 bg-green-500 text-white rounded-xl shadow-lg shadow-green-500/20 hover:scale-105 transition-all"
-                                 >
-                                   <Check size={16} />
-                                 </button>
-                               </>
-                             )}
+                            <button
+                              onClick={() => handleRejectPro(pro.id)}
+                              className="p-3 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all"
+                              title="Rejeitar"
+                            >
+                              <X size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleApprovePro(pro.id)}
+                              className="p-3 bg-green-500 text-white rounded-xl shadow-lg shadow-green-500/20 hover:scale-105 transition-all"
+                              title="Aprovar"
+                            >
+                              <Check size={16} />
+                            </button>
                           </div>
                         </div>
                       ));
