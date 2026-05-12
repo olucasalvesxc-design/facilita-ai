@@ -2132,9 +2132,15 @@ export default function App() {
                     <input id="fileIn" type="file" className="hidden" onChange={(e) => handleImageUpload(e, 'photo')} />
                   </div>
                   <div className="flex-grow pb-4">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h2 className="text-3xl font-black text-white uppercase tracking-tight">{profileData?.name}</h2>
-                      {profileData?.isVerified && <ShieldCheck size={24} className="text-blue-500" />}
+                      {(profileData?.role === 'admin' || isAdmin) && (
+                        <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border"
+                          style={{ background: 'rgba(255,200,0,0.12)', borderColor: 'rgba(255,200,0,0.35)', color: '#FFD700' }}>
+                          ★ Criador
+                        </span>
+                      )}
+                      {profileData?.isVerified && <ShieldCheck size={22} className="text-blue-500" />}
                     </div>
                     <div className="flex items-center gap-3 mt-1">
                       <p className="text-gray-500 text-sm font-medium flex items-center gap-1">
