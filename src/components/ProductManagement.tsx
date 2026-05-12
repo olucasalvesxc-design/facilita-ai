@@ -78,12 +78,31 @@ export const ProductManagement = ({ professional }: ProductManagementProps) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const MAX_MB = 10;
+    if (file.size > MAX_MB * 1024 * 1024) {
+      alert(`Imagem muito grande! Máximo permitido: ${MAX_MB}MB. Seu arquivo: ${(file.size / 1024 / 1024).toFixed(1)}MB`);
+      e.target.value = '';
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      alert('Formato inválido. Envie uma imagem (JPG, PNG, WEBP).');
+      e.target.value = '';
+      return;
+    }
+
     setUploadingImage(true);
     try {
-      const compressed = await compressImage(file);
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const compressed = await compressImage(base64, 1024, 0.8);
       setFormData(prev => ({ ...prev, imageUrl: compressed }));
     } catch (error) {
       console.error('Error uploading image:', error);
+      alert('Erro ao processar imagem. Tente novamente.');
     } finally {
       setUploadingImage(false);
     }

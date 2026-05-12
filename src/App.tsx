@@ -1378,7 +1378,9 @@ export default function App() {
       <main className="flex-grow flex flex-col min-w-0 pb-24 lg:pb-0">
         <header className="px-5 py-6 sm:px-8 lg:px-12 flex items-center justify-between sticky top-0 bg-[#070b13]/90 backdrop-blur-3xl z-[90] shrink-0">
           <div onClick={() => setActiveTab('home')} className="flex items-center gap-3 cursor-pointer group">
-            <img src="/favicon.png" alt="Facilita Aí" className="w-11 h-11 rounded-[18px] object-cover group-active:scale-95 transition-all" style={{ boxShadow: '0 10px 20px rgba(255,122,0,0.3)' }} />
+            <div className="w-11 h-11 rounded-[18px] flex items-center justify-center group-active:scale-95 transition-all shrink-0" style={{ background: 'linear-gradient(135deg, #1a0e00, #2d1600)', boxShadow: '0 10px 20px rgba(255,122,0,0.35)', border: '1px solid rgba(255,122,0,0.25)' }}>
+              <Hammer size={22} className="text-[#FF7A00]" />
+            </div>
             <h1 className="text-xl lg:text-2xl font-black italic uppercase tracking-tighter leading-none">
               <span className="text-white">FACILITA</span>
               <span className="text-[#FF7A00] ml-1.5">AÍ</span>
