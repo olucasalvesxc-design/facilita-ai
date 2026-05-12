@@ -41,9 +41,6 @@ export function Sidebar({ activeTab, onTabChange, onBecomePro, userRole }: {
         <SidebarItem icon={Heart} label="Favoritos" active={activeTab === 'favorites'} onClick={() => onTabChange('favorites')} />
         <SidebarItem icon={Bell} label="Notificações" active={activeTab === 'notifications'} onClick={() => onTabChange('notifications')} />
         <SidebarItem icon={User} label="Perfil" active={activeTab === 'profile'} onClick={() => onTabChange('profile')} />
-        {userRole === 'pro' && (
-          <SidebarItem icon={ShieldCheck} label="Painel Pro" active={activeTab === 'pro_dashboard'} onClick={() => onTabChange('pro_dashboard')} />
-        )}
         {userRole === 'admin' && (
           <SidebarItem icon={ShieldCheck} label="Administração" active={activeTab === 'admin_dashboard'} onClick={() => onTabChange('admin_dashboard')} />
         )}
