@@ -2315,30 +2315,25 @@ export default function App() {
                       </div>
                     )}
 
-                    {/* Verification Status */}
-                    {profileData?.role === 'pro' && profileData?.role !== 'admin' && !isAdmin && (
-                      <div className={`p-8 rounded-[32px] border transition-all ${profileData.isVerified ? 'bg-blue-500/5 border-blue-500/20' : 'bg-white/5 border-white/5'}`}>
+                    {/* Verification Status — só aparece se ainda não verificado */}
+                    {profileData?.role === 'pro' && !isAdmin && !profileData?.isVerified && (
+                      <div className="p-8 rounded-[32px] border bg-white/5 border-white/5">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                           <div className="flex gap-4">
-                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${profileData.isVerified ? 'bg-blue-500/20 text-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.3)]' : 'bg-orange-500/20 text-orange-500'}`}>
+                            <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 bg-orange-500/20 text-orange-500">
                               <ShieldCheck size={28} />
                             </div>
                             <div>
-                              <h4 className="font-black text-white text-lg flex items-center gap-2 mb-1">
-                                {profileData.isVerified ? 'Perfil Verificado' : 'Selo de Confiança'}
-                                {profileData.isVerified && <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />}
-                              </h4>
+                              <h4 className="font-black text-white text-lg mb-1">Selo de Confiança</h4>
                               <p className="text-xs text-gray-500 leading-relaxed max-w-md">
-                                {profileData.isVerified 
-                                  ? 'Sua conta está verificada. Você transmite mais autoridade e segurança para seus clientes.' 
-                                  : (profileData.verificationStatus === 'pending' 
-                                    ? 'Sua solicitação está em análise. Em breve o selo será liberado!' 
-                                    : 'Aumente sua visibilidade e transmita mais confiança para os clientes por apenas R$ 9,90.')}
+                                {profileData.verificationStatus === 'pending'
+                                  ? 'Sua solicitação está em análise. Em breve o selo será liberado!'
+                                  : 'Aumente sua visibilidade e transmita mais confiança para os clientes por apenas R$ 9,90.'}
                               </p>
                             </div>
                           </div>
-                          {!profileData.isVerified && profileData.verificationStatus !== 'pending' && (
-                            <button 
+                          {profileData.verificationStatus !== 'pending' && (
+                            <button
                               onClick={handleRequestVerification}
                               className="bg-orange-500 text-white px-8 py-3 rounded-2xl font-black uppercase text-xs shadow-xl shadow-orange-500/20 active:scale-95 transition-all whitespace-nowrap"
                             >
