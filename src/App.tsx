@@ -405,7 +405,7 @@ export default function App() {
     }
 
     const ADMIN_EMAIL = 'olucasalveszx@gmail.com';
-    const isEmailAdmin = currentUser.email === ADMIN_EMAIL;
+    const isEmailAdmin = currentUser.email?.toLowerCase() === ADMIN_EMAIL;
 
     if (isEmailAdmin) {
       setIsAdmin(true);
@@ -2485,7 +2485,7 @@ export default function App() {
                         for (const userDoc of usersSnap.docs) {
                           const data = userDoc.data();
                           // Nunca revogar a conta admin
-                          if (data.email === ADMIN_EMAIL) continue;
+                          if (data.email?.toLowerCase() === ADMIN_EMAIL) continue;
                           // Verificar assinatura no doc de profissional (campo mais confiável)
                           const proRef = doc(db, 'professionals', userDoc.id);
                           const proSnap = await getDoc(proRef);
