@@ -2427,7 +2427,7 @@ export default function App() {
                     {proDashboardTab === 'services' ? (
                       <ServiceManagement pro={currentProfessional} onUpdatePro={handleUpdatePro} />
                     ) : (
-                      <ProductManagement professional={currentProfessional} />
+                      <ProductManagement professional={currentProfessional} onPublish={() => setActiveTab('products')} />
                     )}
                   </div>
                 )}
@@ -2690,7 +2690,7 @@ export default function App() {
                 {proDashboardTab === 'services' ? (
                   <ServiceManagement pro={currentProfessional} onUpdatePro={handleUpdatePro} />
                 ) : (
-                  <ProductManagement professional={currentProfessional} />
+                  <ProductManagement professional={currentProfessional} onPublish={() => setActiveTab('products')} />
                 )}
               </div>
             )}

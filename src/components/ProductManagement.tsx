@@ -14,9 +14,10 @@ import { PRO_PLANS } from '../constants';
 
 interface ProductManagementProps {
   professional: Professional;
+  onPublish?: () => void;
 }
 
-export const ProductManagement = ({ professional }: ProductManagementProps) => {
+export const ProductManagement = ({ professional, onPublish }: ProductManagementProps) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -134,6 +135,8 @@ export const ProductManagement = ({ professional }: ProductManagementProps) => {
           viewCount: 0,
           clickCount: 0
         });
+        // Ir para o marketplace após publicar
+        onPublish?.();
       }
 
       setIsModalOpen(false);
