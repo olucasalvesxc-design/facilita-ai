@@ -461,7 +461,7 @@ export default function App() {
   // Admin: Real Users list
   useEffect(() => {
     if (!isAdmin) return;
-    const q = query(collection(db, 'users'), orderBy('name'), limit(20));
+    const q = query(collection(db, 'users'), orderBy('name'), limit(200));
     const unsub = onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map((d: any) => ({ id: d.id, ...d.data() }));
       setAdminUsers(Array.from(new Map(items.map((u: any) => [u.id, u])).values()));
@@ -2609,29 +2609,49 @@ export default function App() {
             </div>
 
             <div className="bg-[#121826] rounded-[40px] border border-white/5 p-8 shadow-2xl">
-              <h3 className="text-xl font-black text-white italic uppercase tracking-tighter mb-6">Controle de Usuários</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
+                <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">
+                  Todas as Contas <span className="text-orange-500">({adminUsers.length})</span>
+                </h3>
+                <input
+                  type="text"
+                  placeholder="Buscar por nome ou email..."
+                  id="adminUserSearch"
+                  className="bg-white/5 border border-white/10 rounded-2xl px-4 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-orange-500/50 w-64"
+                  onChange={e => {
+                    const val = e.target.value.toLowerCase();
+                    document.querySelectorAll('[data-admin-user]').forEach((el: any) => {
+                      const name = el.dataset.adminUser.toLowerCase();
+                      el.style.display = name.includes(val) ? '' : 'none';
+                    });
+                  }}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {adminUsers.length === 0 ? (
                   <p className="text-[10px] text-gray-600 col-span-3 text-center py-8">Nenhum usuário encontrado</p>
                 ) : adminUsers.map((u: any) => (
-                  <div key={`admin-user-${u.id}`} className="p-5 bg-white/5 rounded-3xl border border-white/5 flex items-center justify-between">
+                  <div key={`admin-user-${u.id}`} data-admin-user={`${u.name} ${u.email}`} className="p-4 bg-white/5 rounded-3xl border border-white/5 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      {u.photoURL && (
-                        <img src={u.photoURL} alt={u.name} className="w-8 h-8 rounded-lg object-cover shrink-0" onError={(e: React.SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
-                      )}
+                      {u.photoURL
+                        ? <img src={u.photoURL} alt={u.name} className="w-10 h-10 rounded-xl object-cover shrink-0" onError={(e: React.SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
+                        : <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center shrink-0 text-orange-500 font-black text-sm">{u.name?.[0]?.toUpperCase()}</div>
+                      }
                       <div className="min-w-0">
                         <p className="font-bold text-white text-sm truncate">{u.name}</p>
-                        <p className="text-[10px] text-gray-500 uppercase font-black">{u.role}</p>
+                        <p className="text-[10px] text-gray-600 truncate">{u.email}</p>
+                        <span className={`text-[9px] font-black uppercase tracking-widest ${u.role === 'admin' ? 'text-yellow-500' : u.role === 'pro' ? 'text-green-500' : 'text-gray-500'}`}>
+                          {u.role || 'client'}{u.blocked ? ' · bloqueado' : ''}
+                        </span>
                       </div>
                     </div>
                     <button
                       onClick={async () => {
-                        if (!window.confirm(`Bloquear usuário ${u.name}?`)) return;
-                        try {
-                          await updateDoc(doc(db, 'users', u.id), { blocked: !u.blocked });
-                        } catch (err) { console.error(err); }
+                        if (!window.confirm(`${u.blocked ? 'Desbloquear' : 'Bloquear'} ${u.name}?`)) return;
+                        try { await updateDoc(doc(db, 'users', u.id), { blocked: !u.blocked }); }
+                        catch (err) { console.error(err); }
                       }}
-                      className={`shrink-0 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${u.blocked ? 'bg-red-500/10 text-red-500' : 'bg-white/5 text-gray-400 hover:text-white transition-all'}`}
+                      className={`shrink-0 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${u.blocked ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-white/5 text-gray-500 hover:text-white'}`}
                     >
                       {u.blocked ? 'Desbloquear' : 'Bloquear'}
                     </button>
