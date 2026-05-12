@@ -1511,12 +1511,15 @@ export default function App() {
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 rounded-full border border-green-500/20">
+                  <button
+                    onClick={() => { setSearchTerm(''); setSelectedCategory(null); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 rounded-full border border-green-500/20 hover:bg-green-500/20 transition-all active:scale-95"
+                  >
                     <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
                     <span className="text-green-500 text-[9px] font-black uppercase tracking-tight">
-                      {professionals.filter(p => p.status === 'online' && p.subscriptionStatus === 'active').length} Ativos Agora
+                      {professionals.filter(p => p.professionalStatus === 'active' && p.subscriptionStatus === 'active').length} Ativos Agora
                     </span>
-                  </div>
+                  </button>
                 </div>
               </div>
 
