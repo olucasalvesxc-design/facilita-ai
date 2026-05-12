@@ -2135,12 +2135,14 @@ export default function App() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <h2 className="text-3xl font-black text-white uppercase tracking-tight">{profileData?.name}</h2>
                       {(profileData?.role === 'admin' || isAdmin) && (
-                        <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border"
+                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border"
                           style={{ background: 'rgba(255,200,0,0.12)', borderColor: 'rgba(255,200,0,0.35)', color: '#FFD700' }}>
-                          ★ Criador
+                          <ShieldCheck size={12} /> Criador
                         </span>
                       )}
-                      {profileData?.isVerified && <ShieldCheck size={22} className="text-blue-500" />}
+                      {profileData?.isVerified && (
+                        <ShieldCheck size={22} style={{ color: (profileData?.role === 'admin' || isAdmin) ? '#FFD700' : '#3b82f6' }} />
+                      )}
                     </div>
                     <div className="flex items-center gap-3 mt-1">
                       <p className="text-gray-500 text-sm font-medium flex items-center gap-1">
@@ -2389,7 +2391,40 @@ export default function App() {
                   </div>
                 )}
                 
-                <button onClick={logout} className="mt-12 w-full py-5 bg-red-500/5 text-red-500 font-black uppercase tracking-[0.2em] text-[10px] rounded-2xl border border-red-500/10 hover:bg-red-500 hover:text-white transition-all">
+                {/* ── Área Pro: Serviços e Produtos ── */}
+                {(profileData?.role === 'pro' || profileData?.role === 'admin' || isAdmin) && currentProfessional?.professionalStatus === 'active' && (
+                  <div className="space-y-6 mt-4">
+                    <div className="h-px bg-white/5" />
+                    <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/5 w-fit">
+                      <button
+                        onClick={() => setProDashboardTab('services')}
+                        className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${proDashboardTab === 'services' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
+                      >Meus Serviços</button>
+                      <button
+                        onClick={() => setProDashboardTab('products')}
+                        className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${proDashboardTab === 'products' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
+                      >Meus Produtos</button>
+                    </div>
+                    {proDashboardTab === 'services' ? (
+                      <ServiceManagement pro={currentProfessional} onUpdatePro={handleUpdatePro} />
+                    ) : (
+                      <ProductManagement professional={currentProfessional} />
+                    )}
+                  </div>
+                )}
+
+                {/* ── Atalho Admin ── */}
+                {(profileData?.role === 'admin' || isAdmin) && (
+                  <button
+                    onClick={() => setActiveTab('admin_dashboard')}
+                    className="mt-6 w-full py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest border flex items-center justify-center gap-2 transition-all hover:opacity-80"
+                    style={{ background: 'rgba(255,200,0,0.08)', borderColor: 'rgba(255,200,0,0.25)', color: '#FFD700' }}
+                  >
+                    <ShieldCheck size={14} /> Painel de Administração
+                  </button>
+                )}
+
+                <button onClick={logout} className="mt-4 w-full py-5 bg-red-500/5 text-red-500 font-black uppercase tracking-[0.2em] text-[10px] rounded-2xl border border-red-500/10 hover:bg-red-500 hover:text-white transition-all">
                   Sair da Conta
                 </button>
               </div>
