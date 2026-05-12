@@ -383,30 +383,25 @@ export default function App() {
       setIsAdmin(false);
       return;
     }
-    
+
+    const ADMIN_EMAIL = 'olucasalveszx@gmail.com';
+    const isEmailAdmin = currentUser.email === ADMIN_EMAIL;
+
+    if (isEmailAdmin) {
+      setIsAdmin(true);
+      // Always ensure Firestore reflects admin role
+      const userRef = doc(db, 'users', currentUser.uid);
+      updateDoc(userRef, { role: 'admin', isVerified: true }).catch(console.error);
+    }
+
     const adminRef = doc(db, 'admins', currentUser.uid);
     const unsub = onSnapshot(adminRef, (snap) => {
-      setIsAdmin(snap.exists());
+      // Never let Firestore override email-based admin
+      if (!isEmailAdmin) setIsAdmin(snap.exists());
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, `admins/${currentUser.uid}`);
+      console.error('Admin check error:', error);
     });
-    
-    // Auto-promoção para admin pelo email do dono da plataforma
-    const ADMIN_EMAIL = 'olucasalveszx@gmail.com';
-    if (currentUser.email === ADMIN_EMAIL) {
-      setIsAdmin(true);
-      const userRef = doc(db, 'users', currentUser.uid);
-      getDoc(userRef).then(snap => {
-        if (snap.exists()) {
-          const data = snap.data();
-          const needsUpdate = data?.role !== 'admin' || !data?.isVerified;
-          if (needsUpdate) {
-            updateDoc(userRef, { role: 'admin', isVerified: true }).catch(console.error);
-          }
-        }
-      });
-    }
-    
+
     return unsub;
   }, [currentUser]);
 
