@@ -50,6 +50,26 @@ import { HeroAnimation } from './components/HeroAnimation';
 
 // --- Helper Components ---
 
+class SectionErrorBoundary extends React.Component<{ children: React.ReactNode; label?: string }, { error: boolean }> {
+  state = { error: false };
+  static getDerivedStateFromError() { return { error: true }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex flex-col items-center justify-center py-24 gap-4 text-center px-6">
+          <AlertTriangle size={40} className="text-orange-500" />
+          <h3 className="text-white font-black uppercase text-lg">Erro ao carregar {this.props.label || 'seção'}</h3>
+          <p className="text-gray-500 text-sm">Recarregue a página ou tente novamente mais tarde.</p>
+          <button onClick={() => this.setState({ error: false })} className="mt-2 px-6 py-3 bg-orange-500 text-white font-black rounded-2xl text-sm active:scale-95 transition-all">
+            Tentar novamente
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const Spinner = ({ size = 16, className = "" }: { size?: number, className?: string }) => (
   <motion.div
     animate={{ rotate: 360 }}
@@ -644,23 +664,26 @@ export default function App() {
   // Products Listener
   useEffect(() => {
     setLoadingProducts(true);
+    // sem orderBy para não exigir índice composto — ordenamos client-side
     const q = query(
       collection(db, 'products'),
       where('status', '==', 'active'),
-      orderBy('createdAt', 'desc'),
       limit(productsLimit)
     );
     const unsub = onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-      
-      // Deduplicate by ID
       const unique = Array.from(new Map(items.map(p => [p.id, p])).values());
-      
+      // ordenar por createdAt desc client-side
+      unique.sort((a: any, b: any) => {
+        const ta = a.createdAt?.seconds ?? 0;
+        const tb = b.createdAt?.seconds ?? 0;
+        return tb - ta;
+      });
       setProducts(unique);
       setHasMoreProducts(snapshot.docs.length === productsLimit);
       setLoadingProducts(false);
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'products');
+      console.error('Products listener error:', error);
       setLoadingProducts(false);
     });
     return unsub;
@@ -2018,7 +2041,11 @@ export default function App() {
           </div>
         )}
 
-        {activeTab === 'emergency' && <EmergencySection />}
+        {activeTab === 'emergency' && (
+          <SectionErrorBoundary label="SOS / Emergência">
+            <EmergencySection />
+          </SectionErrorBoundary>
+        )}
 
         {activeTab === 'orders' && (
           <div className="px-4 sm:px-6 lg:px-12 py-6 sm:py-8 max-w-4xl mx-auto w-full">
