@@ -1,0 +1,6 @@
+{
+  "name": "Facilita Aí",
+  "description": "Plataforma de serviços premium com Modo SOS, Agendamento Inteligente e Fila Digital. Conectando você aos melhores profissionais em segundos.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": []
+}

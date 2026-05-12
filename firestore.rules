@@ -1,0 +1,238 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helper Functions ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // --- Admins Collection ---
+    match /admins/{adminId} {
+      allow read: if isSignedIn() && request.auth.uid == adminId;
+      allow write: if isAdmin();
+    }
+
+    // --- Users Collection ---
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      
+      allow create: if isOwner(userId) 
+                    && (!incoming().keys().hasAny(['isVerified']) || incoming().isVerified == false)
+                    && (incoming().role in ['client', 'pro'])
+                    && isValidUser(incoming());
+                    
+      allow update: if isOwner(userId) && (
+        // Allow updating everything except isVerified and role unless specific transition
+        (!incoming().diff(existing()).affectedKeys().hasAny(['isVerified', 'role'])) ||
+        // Allow transition from client to pro
+        (existing().role == 'client' && incoming().role == 'pro' && !incoming().diff(existing()).affectedKeys().hasAny(['isVerified'])) ||
+        isAdmin()
+      );
+      
+      function isValidUser(data) {
+        return data.name is string && data.name.size() <= 100
+            && data.role in ['client', 'pro', 'admin']
+            && (data.whatsapp == null || data.whatsapp is string)
+            && (data.bio == null || data.bio is string)
+            && (data.skills == null || data.skills is list)
+            && (data.experience == null || data.experience is string)
+            && (data.priceRange == null || data.priceRange is string)
+            && (data.bannerURL == null || data.bannerURL is string)
+            && (data.instagram == null || data.instagram is string)
+            && (data.website == null || data.website is string)
+            && (data.location == null || data.location is string)
+            && (data.photoURL == null || data.photoURL is string);
+      }
+
+      match /likedPros/{proId} {
+        allow get, list, create, update, delete: if isOwner(userId);
+      }
+    }
+
+    // --- Appointments Collection ---
+    match /appointments/{appointmentId} {
+      allow read, list: if isSignedIn() && (
+        resource.data.clientId == request.auth.uid || 
+        resource.data.proId == request.auth.uid
+      );
+      
+      allow create: if isSignedIn() 
+                    && incoming().clientId == request.auth.uid
+                    && isValidAppointment(incoming());
+                    
+      allow update: if isSignedIn() && (
+        (existing().clientId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])) ||
+        (existing().proId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
+      );
+
+      function isValidAppointment(data) {
+        return data.clientId is string && data.proId is string
+            && data.status in ['pending', 'confirmed', 'completed', 'cancelled']
+            && data.time is string;
+      }
+    }
+
+    // --- Professionals Collection ---
+    match /professionals/{proId} {
+      allow read: if true; 
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidId(proId) && (
+        !incoming().keys().hasAny(['isVerified']) || incoming().isVerified == false || isAdmin()
+      );
+      allow update: if isSignedIn() && (
+        (existing().userId == request.auth.uid && !incoming().diff(existing()).affectedKeys().hasAny(['isVerified'])) ||
+        (incoming().diff(existing()).affectedKeys().hasOnly(['likesCount'])) ||
+        isAdmin()
+      );
+      allow delete: if isSignedIn() && (proId.startsWith('pro') || existing().userId == request.auth.uid || isAdmin());
+
+      // --- Queue Subcollection ---
+      match /queue/{entryId} {
+        allow read, list: if true; // Everyone can see wait times/position
+        
+        allow create: if isSignedIn() 
+                      && incoming().clientId == request.auth.uid
+                      && isValidQueueEntry(incoming());
+                      
+        allow update: if isSignedIn() && (
+          (existing().clientId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['status'])) ||
+          (proId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasAny(['status', 'position', 'calledAt']))
+        );
+
+        function isValidQueueEntry(data) {
+          return data.clientId is string && data.clientName is string
+              && data.status in ['waiting', 'called', 'in_service', 'completed', 'cancelled']
+              && data.position is number;
+        }
+      }
+
+      // --- Portfolio Subcollection ---
+      match /portfolio/{itemId} {
+        allow read: if true;
+        
+        allow create, update, delete: if isSignedIn() && (proId == request.auth.uid || isAdmin());
+
+        match /likes/{userId} {
+          allow read: if true;
+          allow create, delete: if isOwner(userId);
+        }
+
+        match /comments/{commentId} {
+          allow read: if true;
+          allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+          allow delete: if isAdmin() || (isSignedIn() && (existing().userId == request.auth.uid || get(/databases/$(database)/documents/professionals/$(proId)).data.userId == request.auth.uid));
+        }
+      }
+    }
+
+    // --- Orders Collection ---
+    match /orders/{orderId} {
+      // Identity-Based Read: Explicitly check resource.data to prevent blanket scans
+      allow read: if isSignedIn() && (
+        resource.data.clientId == request.auth.uid || 
+        resource.data.professionalId == request.auth.uid
+      );
+      
+      // Strict Listing: Mandatory filters must be applied by client
+      allow list: if isSignedIn() && (
+        resource.data.clientId == request.auth.uid || 
+        resource.data.professionalId == request.auth.uid
+      );
+
+      allow create: if isSignedIn() 
+                    && incoming().clientId == request.auth.uid
+                    && isValidOrder(incoming());
+                    
+      allow update: if isSignedIn() && (
+        (existing().clientId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'description', 'updatedAt'])) ||
+        (existing().professionalId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
+      );
+
+      // Allow deleting orders if user is involved (client or professional)
+      allow delete: if isSignedIn() && (
+        resource.data.clientId == request.auth.uid || 
+        resource.data.professionalId == request.auth.uid ||
+        isAdmin()
+      );
+
+      function isValidOrder(data) {
+        return data.clientId is string 
+            && (data.status in ['pending', 'scheduled', 'in_progress', 'completed', 'cancelled'])
+            && (
+              (data.keys().hasAny(['serviceTitle']) && data.serviceTitle is string) || 
+              (data.keys().hasAny(['title']) && data.title is string)
+            );
+      }
+    }
+
+    // --- Chats Collection ---
+    match /chats/{chatId} {
+      // On creation, we check if the user is one of the participants
+      allow read, create: if isSignedIn() && request.auth.uid in incoming().participants;
+      allow update: if isSignedIn() && request.auth.uid in existing().participants;
+      
+      match /messages/{msgId} {
+        allow read: if isSignedIn() && get(/databases/$(database)/documents/chats/$(chatId)).data.participants.hasAll([request.auth.uid]);
+        allow create: if isSignedIn() 
+                      && incoming().senderId == request.auth.uid
+                      && get(/databases/$(database)/documents/chats/$(chatId)).data.participants.hasAll([request.auth.uid]);
+      }
+    }
+
+    // --- Notifications Collection ---
+    match /notifications/{notifId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && incoming().userId != null;
+      allow update: if isSignedIn() && existing().userId == request.auth.uid 
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['read']);
+    }
+
+    // --- Emergency Numbers Collection ---
+    match /emergency_numbers/{numberId} {
+      allow read, list: if true;
+      allow write: if isAdmin();
+    }
+
+    function isProfessionalActive(userId) {
+      // Check if pro exists and has active subscription
+      let pro = get(/databases/$(database)/documents/professionals/$(userId)).data;
+      return pro.subscriptionStatus == 'active' && 
+             (pro.subscriptionType in ['start', 'pro', 'ultra', 'monthly_pro', 'annual_pro']);
+    }
+
+    // --- Products Collection ---
+    match /products/{productId} {
+      allow read, list: if true;
+      allow create: if isSignedIn() && (incoming().proId == request.auth.uid || isAdmin()) 
+                    && isProfessionalActive(request.auth.uid);
+      allow update: if isSignedIn() && (existing().proId == request.auth.uid || isAdmin())
+                    && isProfessionalActive(request.auth.uid);
+      allow delete: if isSignedIn() && (existing().proId == request.auth.uid || isAdmin());
+    }
+  }
+}

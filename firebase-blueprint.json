@@ -1,0 +1,276 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Standard app user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["client", "admin", "pro"] },
+        "skills": { "type": "array", "items": { "type": "string" } },
+        "hasActiveSubscription": { "type": "boolean" },
+        "subscriptionPlan": { "type": "string", "enum": ["free", "start", "pro", "ultra", "pro_monthly", "pro_annual"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "email", "role"]
+    },
+    "Professional": {
+      "title": "Professional",
+      "description": "Service provider profile",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "skills": { "type": "array", "items": { "type": "string" } },
+        "rating": { "type": "number" },
+        "reviewCount": { "type": "integer" },
+        "pricePerService": { "type": "number" },
+        "status": { "type": "string", "enum": ["online", "offline"] },
+        "subscriptionStatus": { "type": "string", "enum": ["active", "expired", "canceled", "none"] },
+        "subscriptionType": { "type": "string", "enum": ["start", "pro", "ultra", "monthly_pro", "annual_pro", "none"] },
+        "photoURL": { "type": "string" },
+        "description": { "type": "string" },
+        "location": { "type": "string" },
+        "userId": { "type": "string" },
+        "likesCount": { "type": "integer" },
+        "serviceMode": { "type": "string", "enum": ["appointment", "queue", "both", "none"] },
+        "slotDuration": { "type": "integer" },
+        "isQueueActive": { "type": "boolean" },
+        "workingHours": { 
+          "type": "array", 
+          "items": { 
+            "type": "object",
+            "properties": {
+              "day": { "type": "string" },
+              "start": { "type": "string" },
+              "end": { "type": "string" },
+              "active": { "type": "boolean" }
+            }
+          } 
+        }
+      },
+      "required": ["id", "name", "category", "rating", "pricePerService", "status"]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "Service appointment booking",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "proId": { "type": "string" },
+        "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "serviceTitle": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "time": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "cancelled", "completed", "no-show"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["proId", "clientId", "date", "time", "status"]
+    },
+    "QueueEntry": {
+      "title": "Queue Entry",
+      "description": "Entry in a real-time service queue",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "proId": { "type": "string" },
+        "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "position": { "type": "integer" },
+        "status": { "type": "string", "enum": ["waiting", "called", "in_service", "completed", "cancelled"] },
+        "entryTime": { "type": "string", "format": "date-time" },
+        "calledAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["proId", "clientId", "position", "status", "entryTime"]
+    },
+    "ProfessionalLike": {
+      "title": "Professional Like",
+      "description": "User like on a professional profile",
+      "type": "object",
+      "properties": {
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Service request/order",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientId": { "type": "string" },
+        "professionalId": { "type": "string" },
+        "serviceTitle": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "in_progress", "completed", "cancelled", "scheduled"] },
+        "date": { "type": "string", "format": "date-time" },
+        "price": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["clientId", "professionalId", "serviceTitle", "status"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Chat message",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "chatId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "read": { "type": "boolean" }
+      },
+      "required": ["chatId", "senderId", "content", "timestamp"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "App notification",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "time": { "type": "string", "format": "date-time" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "message", "read"]
+    },
+    "PortfolioItem": {
+      "title": "Portfolio Item",
+      "description": "Professional portfolio entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "proId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "price": { "type": "number" },
+        "likesCount": { "type": "integer" },
+        "commentsCount": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["proId", "title", "imageUrl"]
+    },
+    "Like": {
+      "title": "Like",
+      "description": "User like on a portfolio item",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "User comment on a portfolio item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userPhoto": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "userName", "content"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Product for sale by a professional/company",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "proId": { "type": "string" },
+        "proName": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "oldPrice": { "type": "number" },
+        "imageUrl": { "type": "string" },
+        "stock": { "type": "integer" },
+        "category": { "type": "string" },
+        "deliveryMethod": { "type": "string", "enum": ["retirada", "entrega_local", "combinar"] },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "proSubscriptionPlan": { "type": "string", "enum": ["start", "pro", "ultra"] }
+      },
+      "required": ["proId", "proName", "name", "price", "imageUrl", "category", "status"]
+    },
+    "EmergencyNumber": {
+      "title": "Emergency Number",
+      "description": "Local/City unique emergency or utility number",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "number": { "type": "string" },
+        "category": { "type": "string" }
+      },
+      "required": ["label", "number"]
+    }
+  },
+  "firestore": {
+    "/emergency_numbers/{numberId}": {
+      "schema": "EmergencyNumber",
+      "description": "City-specific emergency/utility contacts managed by admin"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Global products catalog"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/users/{userId}/likedPros/{proId}": {
+      "schema": "ProfessionalLike",
+      "description": "Professionals liked by the user"
+    },
+    "/professionals/{proId}": {
+      "schema": "Professional",
+      "description": "Professional profiles"
+    },
+    "/professionals/{proId}/portfolio/{itemId}": {
+      "schema": "PortfolioItem",
+      "description": "Professional portfolio items"
+    },
+    "/professionals/{proId}/portfolio/{itemId}/likes/{userId}": {
+      "schema": "Like",
+      "description": "Likes on portfolio items"
+    },
+    "/professionals/{proId}/portfolio/{itemId}/comments/{commentId}": {
+      "schema": "Comment",
+      "description": "Comments on portfolio items"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Service orders"
+    },
+    "/chats/{chatId}/messages/{msgId}": {
+      "schema": "Message",
+      "description": "Messages within a chat"
+    },
+    "/notifications/{notifId}": {
+      "schema": "Notification",
+      "description": "User notifications"
+    },
+    "/appointments/{appointmentId}": {
+      "schema": "Appointment",
+      "description": "Service appointments"
+    },
+    "/professionals/{proId}/queue/{entryId}": {
+      "schema": "QueueEntry",
+      "description": "Real-time queue entries for a professional"
+    }
+  }
+}

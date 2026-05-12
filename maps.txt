@@ -1,0 +1,68 @@
+src/components/BookingSystem.tsx:        .map(doc => ({ id: doc.id, ...doc.data() } as QueueEntry))
+src/components/BookingSystem.tsx:                 {generateTimeSlots().map((time, i) => (
+src/components/ProfessionalOnboarding.tsx:              {formData.workingHours?.map((w, i) => (
+src/components/ProfessionalOnboarding.tsx:          {[1,2,3].map(i => (
+src/components/SmartBudgetModal.tsx:                          {categories.map((cat, i) => (
+src/components/Portfolio.tsx:      setComments(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Comment)));
+src/components/Portfolio.tsx:          {comments.map((comment, index) => (
+src/components/Portfolio.tsx:      const portfolioItems = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as PortfolioItem));
+src/components/Portfolio.tsx:      setItems(prev => prev.map(item => 
+src/components/Portfolio.tsx:          {items.map((item, index) => (
+src/components/Portfolio.tsx:      const portfolioItems = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as PortfolioItem));
+src/components/Portfolio.tsx:      setComments(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Comment)));
+src/components/Portfolio.tsx:      setItems(prev => prev.map(item => 
+src/components/Portfolio.tsx:          {items.map((item, index) => (
+src/components/Portfolio.tsx:                      {comments.map((comment, index) => (
+src/components/ChatList.tsx:        .map(doc => ({ id: doc.id, ...doc.data() } as Professional))
+src/components/ChatList.tsx:        {professionals.map((pro, index) => {
+src/components/MapSearch.tsx:        .map(p => [p.coordinates!.lat, p.coordinates!.lng] as [number, number]);
+src/components/MapSearch.tsx:                    {locationResults.map((res, i) => (
+src/components/MapSearch.tsx:            filteredPros.map((pro, index) => {
+src/components/MapSearch.tsx:            {filteredPros.map((pro, index) => (
+src/components/Onboarding.tsx:          {STEPS.map((_, i) => (
+src/components/MapComponent.tsx:        .map(p => [p.coordinates!.lat, p.coordinates!.lng] as [number, number]);
+src/components/MapComponent.tsx:        {professionals.map((pro, idx) => (
+src/components/HomeInfoSections.tsx:                    {stats.map((stat, i) => (
+src/components/HomeInfoSections.tsx:        {steps.map((step, i) => (
+src/components/HomeInfoSections.tsx:          {list.map((t, i) => (
+src/components/HomeInfoSections.tsx:                {[1,2,3,4,5].map(s => <Star key={`comp-testimonial-star-v8-${t.name}-${i}-${s}`} size={10} className="fill-yellow-500 text-yellow-500" />)}
+src/components/HomeInfoSections.tsx:        {tips.map((tip, i) => (
+src/components/HomeInfoSections.tsx:          {faqs.map((faq, i) => (
+src/components/HomeInfoSections.tsx:        {cards.map((card, i) => (
+src/components/HomeInfoSections.tsx:          {[Instagram, Globe, Mail].map((Icon, i) => (
+src/components/HomeInfoSections.tsx:          {featured.map((_, i) => (
+src/components/ServiceManagement.tsx:      const appData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Appointment));
+src/components/ServiceManagement.tsx:      const queueData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as QueueEntry));
+src/components/ServiceManagement.tsx:          {appointments.filter(a => a.status === 'pending' || a.status === 'confirmed').map((app, index) => (
+src/components/ServiceManagement.tsx:          {queue.filter(q => q.status !== 'completed' && q.status !== 'cancelled').map((entry, idx) => (
+src/components/ServiceManagement.tsx:                 ].map((mode, index) => (
+src/components/ServiceManagement.tsx:          {(pro.workingHours || []).map((day, i) => (
+src/components/ServiceManagement.tsx:          ].map((tab, index) => (
+src/components/Chat.tsx:      const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
+src/components/Chat.tsx:        {messages.map((msg, index) => {
+src/components/PWATutorial.tsx:                  {currentSteps.map((step, i) => (
+src/lib/firebase.ts:      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+src/App.tsx:      setProsAwaitingVerification(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Professional)));
+src/App.tsx:        .map(doc => ({ id: doc.id, ...doc.data() } as Professional))
+src/App.tsx:      setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
+src/App.tsx:      setProOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
+src/App.tsx:      const notifs = snapshot.docs.map(doc => ({
+src/App.tsx:    return professionals.filter(pro => (pro as any).publicProfile !== false).map(pro => {
+src/App.tsx:    return Object.keys(groups).sort().map(letter => ({
+src/App.tsx:      const skillsArray = editForm.skills.split(',').map(s => s.trim()).filter(s => s);
+src/App.tsx:        skills: proForm.skills.split(',').map(s => s.trim()).filter(s => s),
+src/App.tsx:                {POPULAR_CATEGORIES.map((cat, i) => (
+src/App.tsx:                {professionals.filter(p => p.rating >= 4.8).slice(0, 4).map((pro, index) => (
+src/App.tsx:                 ].map((step, index) => (
+src/App.tsx:                    {POPULAR_CATEGORIES.map((cat, index) => (
+src/App.tsx:                  {filteredPros.map((pro, index) => (
+src/App.tsx:                {alphabeticalProfessions.map((group, groupIdx) => {
+src/App.tsx:                        {filteredItems.map((item, idx) => (
+src/App.tsx:                    {filteredOrders.map((order, index) => (
+src/App.tsx:                              profileData.skills.map((skill: string, i: number) => (
+src/App.tsx:                    {prosAwaitingVerification.map((pro, index) => (
+src/App.tsx:                    ].map((p, index) => (
+src/App.tsx:                ].map((u, index) => (
+src/App.tsx:                notifications.map((n, i) => (
+src/App.tsx:                    ].map((feature, index) => (
+src/App.tsx:                      {['São Paulo, SP', 'Rio de Janeiro, RJ', 'Belo Horizonte, MG', 'Curitiba, PR', 'Porto Alegre, RS', 'Brasília, DF'].map((city, i) => (
