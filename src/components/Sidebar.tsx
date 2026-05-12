@@ -24,7 +24,7 @@ export function Sidebar({ activeTab, onTabChange, onBecomePro, userRole }: {
   return (
     <aside className="hidden lg:flex w-64 bg-[#070b13] border-r border-white/5 flex-col p-6 sticky top-0 h-screen">
       <div onClick={() => onTabChange('home')} className="flex items-center gap-3 mb-12 cursor-pointer group">
-        <img src="/png.png" alt="Facilita Aí" className="w-11 h-11 rounded-[18px] object-cover group-active:scale-95 transition-all" style={{ boxShadow: '0 10px 20px rgba(255,122,0,0.3)' }} />
+        <img src="/favicon.png" alt="Facilita Aí" className="w-11 h-11 rounded-[18px] object-cover group-active:scale-95 transition-all" style={{ boxShadow: '0 10px 20px rgba(255,122,0,0.3)' }} />
         <h1 className="text-xl font-black italic uppercase tracking-tighter leading-none">
           <span className="text-white">FACILITA</span>
           <span className="text-[#FF7A00] ml-1.5">AÍ</span>
