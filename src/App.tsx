@@ -395,11 +395,14 @@ export default function App() {
     const ADMIN_EMAIL = 'olucasalveszx@gmail.com';
     if (currentUser.email === ADMIN_EMAIL) {
       setIsAdmin(true);
-      // Garante role admin na coleção users (usuário tem permissão de escrita no próprio doc)
       const userRef = doc(db, 'users', currentUser.uid);
       getDoc(userRef).then(snap => {
-        if (snap.exists() && snap.data()?.role !== 'admin') {
-          updateDoc(userRef, { role: 'admin' }).catch(console.error);
+        if (snap.exists()) {
+          const data = snap.data();
+          const needsUpdate = data?.role !== 'admin' || !data?.isVerified;
+          if (needsUpdate) {
+            updateDoc(userRef, { role: 'admin', isVerified: true }).catch(console.error);
+          }
         }
       });
     }
@@ -2140,7 +2143,7 @@ export default function App() {
                           <ShieldCheck size={12} /> Criador
                         </span>
                       )}
-                      {profileData?.isVerified && (
+                      {(profileData?.isVerified || profileData?.role === 'admin' || isAdmin) && (
                         <ShieldCheck size={22} style={{ color: (profileData?.role === 'admin' || isAdmin) ? '#FFD700' : '#3b82f6' }} />
                       )}
                     </div>
@@ -2308,7 +2311,7 @@ export default function App() {
                     )}
 
                     {/* Verification Status */}
-                    {profileData?.role === 'pro' && (
+                    {profileData?.role === 'pro' && profileData?.role !== 'admin' && !isAdmin && (
                       <div className={`p-8 rounded-[32px] border transition-all ${profileData.isVerified ? 'bg-blue-500/5 border-blue-500/20' : 'bg-white/5 border-white/5'}`}>
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                           <div className="flex gap-4">
@@ -2345,7 +2348,7 @@ export default function App() {
                         </div>
                       </div>
                     )}
-                    {profileData?.role !== 'pro' && (
+                    {profileData?.role !== 'pro' && profileData?.role !== 'admin' && !isAdmin && (
                       <button onClick={() => setIsProOnboardingOpen(true)} className="w-full bg-gradient-to-r from-orange-500 to-red-500 py-6 rounded-[32px] font-black uppercase text-sm shadow-2xl shadow-orange-500/20 active:scale-[0.98] transition-all">
                         🚀 Quero me tornar um Profissional
                       </button>

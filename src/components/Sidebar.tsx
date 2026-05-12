@@ -45,24 +45,35 @@ export function Sidebar({ activeTab, onTabChange, onBecomePro, userRole }: {
           <SidebarItem icon={ShieldCheck} label="Painel Pro" active={activeTab === 'pro_dashboard'} onClick={() => onTabChange('pro_dashboard')} />
         )}
         {userRole === 'admin' && (
-          <SidebarItem icon={ShieldCheck} label="Admin" active={activeTab === 'admin_dashboard'} onClick={() => onTabChange('admin_dashboard')} />
+          <SidebarItem icon={ShieldCheck} label="Administração" active={activeTab === 'admin_dashboard'} onClick={() => onTabChange('admin_dashboard')} />
         )}
         <SidebarItem icon={Settings} label="Configurações" active={activeTab === 'settings'} onClick={() => onTabChange('settings')} />
       </nav>
 
-      {userRole === 'pro' ? (
-        <div 
+      {userRole === 'admin' ? (
+        <div
+          onClick={() => onTabChange('admin_dashboard')}
+          className="mt-8 p-6 rounded-3xl relative overflow-hidden group border cursor-pointer transition-all hover:opacity-90"
+          style={{ background: 'rgba(255,200,0,0.07)', borderColor: 'rgba(255,200,0,0.2)' }}
+        >
+          <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full blur-3xl" style={{ background: 'rgba(255,200,0,0.08)' }} />
+          <div className="flex items-center gap-2 mb-3 relative z-10">
+            <ShieldCheck size={16} style={{ color: '#FFD700' }} />
+            <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#FFD700' }}>Criador</span>
+          </div>
+          <h3 className="font-bold text-base mb-1 relative z-10 text-white">Painel Admin</h3>
+          <p className="text-gray-500 text-xs relative z-10">Gerencie usuários, profissionais e assinaturas.</p>
+        </div>
+      ) : userRole === 'pro' ? (
+        <div
           onClick={() => onTabChange('pro_dashboard')}
           className="mt-8 p-6 bg-gradient-to-br from-green-500/20 to-green-500/5 rounded-3xl relative overflow-hidden group border border-green-500/20 cursor-pointer hover:border-green-500/40 transition-all"
         >
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-green-500/10 rounded-full blur-3xl" />
           <h3 className="font-bold text-lg mb-2 relative z-10 text-white">Painel Pro</h3>
           <p className="text-gray-400 text-xs mb-4 relative z-10">Você está online e visível para clientes.</p>
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              onTabChange('pro_dashboard');
-            }}
+          <button
+            onClick={(e) => { e.stopPropagation(); onTabChange('pro_dashboard'); }}
             className="w-full py-3 bg-green-500 text-white font-bold rounded-xl text-sm transition-all shadow-lg shadow-green-500/20 active:scale-95"
           >
             Ver Ganhos
@@ -71,20 +82,15 @@ export function Sidebar({ activeTab, onTabChange, onBecomePro, userRole }: {
       ) : (
         <div className="mt-8 p-6 bg-gradient-to-br from-gray-800 to-[#121826] rounded-3xl relative overflow-hidden group border border-white/5">
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl group-hover:bg-orange-500/20 transition-all duration-500" />
-          
           <div className="flex items-center gap-2 mb-4 relative z-10">
             <div className="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center text-green-500">
               <Flashlight size={16} />
             </div>
             <span className="text-[10px] font-bold text-green-500 uppercase tracking-widest">Plano Pro</span>
           </div>
-
           <h3 className="font-bold text-lg mb-2 relative z-10 text-white">Seja um prestador!</h3>
           <p className="text-gray-400 text-xs mb-4 relative z-10">Destaque-se no ranking e conquiste 5x mais clientes.</p>
-          <button 
-            onClick={onBecomePro}
-            className="w-full py-3 bg-white text-[#070b13] hover:bg-gray-100 font-bold rounded-xl text-sm transition-all shadow-lg"
-          >
+          <button onClick={onBecomePro} className="w-full py-3 bg-white text-[#070b13] hover:bg-gray-100 font-bold rounded-xl text-sm transition-all shadow-lg">
             Assinar Plano
           </button>
         </div>
