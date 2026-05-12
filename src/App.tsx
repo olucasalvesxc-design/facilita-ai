@@ -2131,13 +2131,23 @@ export default function App() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <h2 className="text-3xl font-black text-white uppercase tracking-tight">{profileData?.name}</h2>
                       {(profileData?.role === 'admin' || isAdmin) && (
-                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border"
-                          style={{ background: 'rgba(255,200,0,0.12)', borderColor: 'rgba(255,200,0,0.35)', color: '#FFD700' }}>
-                          <ShieldCheck size={12} /> Criador
-                        </span>
+                        <motion.span
+                          initial={{ scale: 0.8, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest overflow-hidden"
+                          style={{
+                            background: 'linear-gradient(135deg, #7c5200 0%, #FFD700 40%, #ffe566 60%, #b8860b 100%)',
+                            boxShadow: '0 0 16px rgba(255,215,0,0.5), 0 2px 8px rgba(0,0,0,0.4)',
+                            color: '#1a0e00',
+                          }}
+                        >
+                          <span className="absolute inset-0 opacity-30" style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%)', backgroundSize: '200% 100%', animation: 'shimmer 2.5s infinite' }} />
+                          <ShieldCheck size={11} strokeWidth={3} />
+                          ✦ Criador
+                        </motion.span>
                       )}
-                      {(profileData?.isVerified || profileData?.role === 'admin' || isAdmin) && (
-                        <ShieldCheck size={22} style={{ color: (profileData?.role === 'admin' || isAdmin) ? '#FFD700' : '#3b82f6' }} />
+                      {(profileData?.isVerified || profileData?.role === 'admin' || isAdmin) && !(profileData?.role === 'admin' || isAdmin) && (
+                        <ShieldCheck size={22} style={{ color: '#3b82f6' }} />
                       )}
                     </div>
                     <div className="flex items-center gap-3 mt-1">
