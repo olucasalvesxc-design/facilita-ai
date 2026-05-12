@@ -391,19 +391,17 @@ export default function App() {
       handleFirestoreError(error, OperationType.GET, `admins/${currentUser.uid}`);
     });
     
-    // Auto-make admin for testing if email matches
-    if (currentUser.email === 'olucasalveszx@gmail.com') {
-      const setAdmin = async () => {
-        const snap = await getDoc(adminRef);
-        if (!snap.exists()) {
-          try {
-            await setDoc(adminRef, { email: currentUser.email, createdAt: serverTimestamp() });
-          } catch (e) {
-            console.error('Failed to self-promote to admin:', e);
-          }
+    // Auto-promoção para admin pelo email do dono da plataforma
+    const ADMIN_EMAIL = 'olucasalveszx@gmail.com';
+    if (currentUser.email === ADMIN_EMAIL) {
+      setIsAdmin(true);
+      // Garante role admin na coleção users (usuário tem permissão de escrita no próprio doc)
+      const userRef = doc(db, 'users', currentUser.uid);
+      getDoc(userRef).then(snap => {
+        if (snap.exists() && snap.data()?.role !== 'admin') {
+          updateDoc(userRef, { role: 'admin' }).catch(console.error);
         }
-      };
-      setAdmin();
+      });
     }
     
     return unsub;
@@ -2397,7 +2395,40 @@ export default function App() {
           <div className="px-6 lg:px-12 py-8 max-w-5xl mx-auto w-full mb-32 space-y-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                 <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">Painel de Controle</h3>
-               <div className="flex gap-4">
+               <div className="flex gap-3 flex-wrap">
+                  {/* Botão revogar Pros sem pagamento */}
+                  <button
+                    onClick={async () => {
+                      if (!confirm('Revogar todos os Pros sem assinatura ativa paga? Esta ação não pode ser desfeita.')) return;
+                      try {
+                        const usersSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'pro')));
+                        let count = 0;
+                        for (const userDoc of usersSnap.docs) {
+                          const data = userDoc.data();
+                          if (data.hasActiveSubscription === true) continue;
+                          await updateDoc(doc(db, 'users', userDoc.id), {
+                            role: 'client',
+                            hasActiveSubscription: false,
+                            subscriptionUpdatedAt: serverTimestamp(),
+                          });
+                          const proRef = doc(db, 'professionals', userDoc.id);
+                          const proSnap = await getDoc(proRef);
+                          if (proSnap.exists()) {
+                            await updateDoc(proRef, {
+                              subscriptionStatus: 'inactive',
+                              professionalStatus: 'suspended',
+                              isActive: false,
+                            });
+                          }
+                          count++;
+                        }
+                        alert(`${count} conta(s) Pro sem pagamento foram desativadas.`);
+                      } catch (e) { console.error(e); alert('Erro ao revogar contas.'); }
+                    }}
+                    className="bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl hover:bg-red-500/20 transition-all"
+                  >
+                    Revogar Pros sem pagamento
+                  </button>
                   <div className="bg-white/5 border border-white/5 p-4 rounded-3xl flex flex-col items-center">
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Market</span>
                     <span className="text-xl font-black text-orange-500">{products.length}</span>
