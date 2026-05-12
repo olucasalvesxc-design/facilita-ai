@@ -409,9 +409,10 @@ export default function App() {
 
     if (isEmailAdmin) {
       setIsAdmin(true);
-      // Always ensure Firestore reflects admin role
       const userRef = doc(db, 'users', currentUser.uid);
       updateDoc(userRef, { role: 'admin', isVerified: true }).catch(console.error);
+      // Adiciona à coleção admins para as regras do Firestore reconhecerem
+      setDoc(doc(db, 'admins', currentUser.uid), { email: currentUser.email }, { merge: true }).catch(console.error);
     }
 
     const adminRef = doc(db, 'admins', currentUser.uid);
@@ -1184,22 +1185,25 @@ export default function App() {
     }
   };
 
+  const callAdminAction = async (action: string, proId: string) => {
+    const token = await auth.currentUser?.getIdToken();
+    const res = await fetch('/api/admin-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ action, proId }),
+    });
+    if (!res.ok) throw new Error((await res.json()).error || 'Erro servidor');
+    return res.json();
+  };
+
   const handleApprovePro = async (proId: string) => {
     if (!isAdmin) return;
     try {
-      await updateDoc(doc(db, 'professionals', proId), {
-        verificationStatus: 'verified',
-        professionalStatus: 'active',
-        isVerified: true,
-        isActive: true,
-        updatedAt: serverTimestamp()
-      });
-      // Tenta atualizar users doc, mas não falha se regras bloquearem
-      updateDoc(doc(db, 'users', proId), { isVerified: true, role: 'pro', updatedAt: serverTimestamp() }).catch(() => {});
+      await callAdminAction('approve', proId);
       alert('Profissional aprovado com sucesso!');
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert('Erro ao aprovar profissional.');
+      alert('Erro ao aprovar: ' + error.message);
     }
   };
 
@@ -1207,18 +1211,11 @@ export default function App() {
     if (!isAdmin) return;
     if (!confirm('Rejeitar este profissional?')) return;
     try {
-      await updateDoc(doc(db, 'professionals', proId), {
-        verificationStatus: 'rejected',
-        professionalStatus: 'suspended',
-        isActive: false,
-        updatedAt: serverTimestamp()
-      });
-      // Tenta atualizar users doc, mas não falha se regras bloquearem
-      updateDoc(doc(db, 'users', proId), { isVerified: false, updatedAt: serverTimestamp() }).catch(() => {});
+      await callAdminAction('reject', proId);
       alert('Profissional rejeitado.');
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert('Erro ao rejeitar profissional.');
+      alert('Erro ao rejeitar: ' + error.message);
     }
   };
 
@@ -1401,7 +1398,7 @@ export default function App() {
 
   return (
       <div className="min-h-screen bg-[#070b13] text-white flex overflow-x-hidden relative">
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} onBecomePro={() => setIsProModalOpen(true)} userRole={profileData?.role} />
+      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} onBecomePro={() => setIsProModalOpen(true)} userRole={isAdmin ? 'admin' : profileData?.role} />
       <main className="flex-grow flex flex-col min-w-0 pb-24 lg:pb-0">
         <header className="px-5 py-6 sm:px-8 lg:px-12 flex items-center justify-between sticky top-0 bg-[#070b13]/90 backdrop-blur-3xl z-[90] shrink-0">
           <div onClick={() => setActiveTab('home')} className="flex items-center gap-3 cursor-pointer group">
@@ -2478,37 +2475,10 @@ export default function App() {
                   <button
                     onClick={async () => {
                       if (!confirm('Revogar todos os Pros sem assinatura ativa paga? Esta ação não pode ser desfeita.')) return;
-                      const ADMIN_EMAIL = 'olucasalveszx@gmail.com';
                       try {
-                        const usersSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'pro')));
-                        let count = 0;
-                        for (const userDoc of usersSnap.docs) {
-                          const data = userDoc.data();
-                          // Nunca revogar a conta admin
-                          if (data.email?.toLowerCase() === ADMIN_EMAIL) continue;
-                          // Verificar assinatura no doc de profissional (campo mais confiável)
-                          const proRef = doc(db, 'professionals', userDoc.id);
-                          const proSnap = await getDoc(proRef);
-                          const proData = proSnap.exists() ? proSnap.data() : null;
-                          const hasPaidSub = proData?.subscriptionStatus === 'active' || data.hasActiveSubscription === true;
-                          if (hasPaidSub) continue;
-                          // Revogar: sem assinatura paga
-                          await updateDoc(doc(db, 'users', userDoc.id), {
-                            role: 'client',
-                            hasActiveSubscription: false,
-                            subscriptionUpdatedAt: serverTimestamp(),
-                          });
-                          if (proSnap.exists()) {
-                            await updateDoc(proRef, {
-                              subscriptionStatus: 'inactive',
-                              professionalStatus: 'suspended',
-                              isActive: false,
-                            });
-                          }
-                          count++;
-                        }
-                        alert(`${count} conta(s) Pro sem assinatura paga foram desativadas.`);
-                      } catch (e) { console.error(e); alert('Erro ao revogar contas.'); }
+                        const result = await callAdminAction('revoke_unpaid', '');
+                        alert(`${result.count} conta(s) Pro sem assinatura paga foram desativadas.`);
+                      } catch (e: any) { console.error(e); alert('Erro ao revogar: ' + e.message); }
                     }}
                     className="bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl hover:bg-red-500/20 transition-all"
                   >
@@ -2803,7 +2773,7 @@ export default function App() {
           </div>
         )}
       </main>
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} userRole={profileData?.role} />
+      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} userRole={isAdmin ? 'admin' : profileData?.role} />
 
       {/* Modals and Overlays */}
       <AnimatePresence>
