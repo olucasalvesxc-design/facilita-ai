@@ -2447,19 +2447,26 @@ export default function App() {
                   <button
                     onClick={async () => {
                       if (!confirm('Revogar todos os Pros sem assinatura ativa paga? Esta ação não pode ser desfeita.')) return;
+                      const ADMIN_EMAIL = 'olucasalveszx@gmail.com';
                       try {
                         const usersSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'pro')));
                         let count = 0;
                         for (const userDoc of usersSnap.docs) {
                           const data = userDoc.data();
-                          if (data.hasActiveSubscription === true) continue;
+                          // Nunca revogar a conta admin
+                          if (data.email === ADMIN_EMAIL) continue;
+                          // Verificar assinatura no doc de profissional (campo mais confiável)
+                          const proRef = doc(db, 'professionals', userDoc.id);
+                          const proSnap = await getDoc(proRef);
+                          const proData = proSnap.exists() ? proSnap.data() : null;
+                          const hasPaidSub = proData?.subscriptionStatus === 'active' || data.hasActiveSubscription === true;
+                          if (hasPaidSub) continue;
+                          // Revogar: sem assinatura paga
                           await updateDoc(doc(db, 'users', userDoc.id), {
                             role: 'client',
                             hasActiveSubscription: false,
                             subscriptionUpdatedAt: serverTimestamp(),
                           });
-                          const proRef = doc(db, 'professionals', userDoc.id);
-                          const proSnap = await getDoc(proRef);
                           if (proSnap.exists()) {
                             await updateDoc(proRef, {
                               subscriptionStatus: 'inactive',
@@ -2469,7 +2476,7 @@ export default function App() {
                           }
                           count++;
                         }
-                        alert(`${count} conta(s) Pro sem pagamento foram desativadas.`);
+                        alert(`${count} conta(s) Pro sem assinatura paga foram desativadas.`);
                       } catch (e) { console.error(e); alert('Erro ao revogar contas.'); }
                     }}
                     className="bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl hover:bg-red-500/20 transition-all"
