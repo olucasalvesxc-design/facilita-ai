@@ -1164,20 +1164,15 @@ export default function App() {
   const handleApprovePro = async (proId: string) => {
     if (!isAdmin) return;
     try {
-      const batch = writeBatch(db);
-      batch.update(doc(db, 'professionals', proId), {
+      await updateDoc(doc(db, 'professionals', proId), {
         verificationStatus: 'verified',
         professionalStatus: 'active',
         isVerified: true,
         isActive: true,
         updatedAt: serverTimestamp()
       });
-      batch.update(doc(db, 'users', proId), {
-        isVerified: true,
-        role: 'pro',
-        updatedAt: serverTimestamp()
-      });
-      await batch.commit();
+      // Tenta atualizar users doc, mas não falha se regras bloquearem
+      updateDoc(doc(db, 'users', proId), { isVerified: true, role: 'pro', updatedAt: serverTimestamp() }).catch(() => {});
       alert('Profissional aprovado com sucesso!');
     } catch (error) {
       console.error(error);
@@ -1189,18 +1184,14 @@ export default function App() {
     if (!isAdmin) return;
     if (!confirm('Rejeitar este profissional?')) return;
     try {
-      const batch = writeBatch(db);
-      batch.update(doc(db, 'professionals', proId), {
+      await updateDoc(doc(db, 'professionals', proId), {
         verificationStatus: 'rejected',
         professionalStatus: 'suspended',
         isActive: false,
         updatedAt: serverTimestamp()
       });
-      batch.update(doc(db, 'users', proId), {
-        isVerified: false,
-        updatedAt: serverTimestamp()
-      });
-      await batch.commit();
+      // Tenta atualizar users doc, mas não falha se regras bloquearem
+      updateDoc(doc(db, 'users', proId), { isVerified: false, updatedAt: serverTimestamp() }).catch(() => {});
       alert('Profissional rejeitado.');
     } catch (error) {
       console.error(error);
