@@ -68,7 +68,8 @@ export const ProfessionalOnboarding = ({ user, onComplete, onCancel }: Onboardin
     setLoading(true);
     try {
       if (!auth.currentUser) return;
-      
+
+      // Salva perfil como PENDENTE — só ativa após confirmação de pagamento pela Kirvano
       const proData: Partial<Professional> = {
         ...formData,
         id: auth.currentUser.uid,
@@ -76,21 +77,23 @@ export const ProfessionalOnboarding = ({ user, onComplete, onCancel }: Onboardin
         rating: 5.0,
         reviewCount: 0,
         status: 'online',
-        isActive: true,
-        professionalStatus: 'active',
+        isActive: false,
+        professionalStatus: 'pending',
+        subscriptionStatus: 'pending_payment',
+        subscriptionType: 'monthly_pro',
         onboardingCompleted: true,
         lastActiveAt: serverTimestamp(),
       };
 
       await setDoc(doc(db, 'professionals', auth.currentUser.uid), proData, { merge: true });
-      await setDoc(doc(db, 'users', auth.currentUser.uid), { role: 'pro' }, { merge: true });
+      // NÃO atualiza role aqui — o webhook da Kirvano faz isso após pagamento confirmado
 
       onComplete(proData);
-      
-      const checkoutUrl = (import.meta as any).env.VITE_KIRVANO_CHECKOUT_URL;
-      if (checkoutUrl) {
-        window.open(checkoutUrl, '_blank');
-      }
+
+      // Redireciona para checkout
+      const baseUrl = import.meta.env.VITE_KIRVANO_CHECKOUT_URL || 'https://pay.kirvano.com/a9e4a8e1-a4c3-43de-933e-21cff8f3f8a3';
+      const email = encodeURIComponent(auth.currentUser.email || '');
+      window.location.href = `${baseUrl}?external_id=${auth.currentUser.uid}&email=${email}`;
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `professionals/${user.id}`);
     } finally {

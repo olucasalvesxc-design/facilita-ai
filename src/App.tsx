@@ -1413,28 +1413,27 @@ export default function App() {
               user={profileData}
               onCancel={() => setIsProOnboardingOpen(false)}
               onComplete={async (pro) => {
-                if (currentUser) {
+                if (!currentUser) return;
+                try {
+                  // Salva o perfil como pendente — só ativa após pagamento confirmado pela Kirvano
                   const proRef = doc(db, 'professionals', currentUser.uid);
-                  await updateDoc(proRef, { 
-                    professionalStatus: 'active',
-                    subscriptionStatus: 'active',
-                    subscriptionType: 'pro',
-                    subscriptionExpiresAt: Timestamp.fromMillis(Date.now() + 30 * 24 * 60 * 60 * 1000)
-                  });
-                  
-                  // Refresh pro data
-                  const updatedPro = await getDoc(proRef);
-                  setCurrentProfessional({ id: updatedPro.id, ...updatedPro.data() } as Professional);
-                  
-                  // Toast success
-                  setActiveToast({
-                    title: 'Perfil Ativado!',
-                    message: 'Seu perfil profissional está ativo e visível.',
-                    type: 'success'
-                  });
-                  
+                  await setDoc(proRef, {
+                    ...pro,
+                    id: currentUser.uid,
+                    userId: currentUser.uid,
+                    professionalStatus: 'pending',
+                    subscriptionStatus: 'pending_payment',
+                    subscriptionType: 'monthly_pro',
+                    lastActiveAt: serverTimestamp(),
+                  }, { merge: true });
+
                   setIsProOnboardingOpen(false);
-                  setActiveTab('pro_dashboard');
+
+                  // Redireciona para checkout da Kirvano
+                  const baseUrl = import.meta.env.VITE_KIRVANO_CHECKOUT_URL || 'https://pay.kirvano.com/a9e4a8e1-a4c3-43de-933e-21cff8f3f8a3';
+                  window.location.href = `${baseUrl}?external_id=${currentUser.uid}&email=${encodeURIComponent(currentUser.email || '')}`;
+                } catch (error) {
+                  console.error('Erro ao salvar perfil:', error);
                 }
               }}
             />
