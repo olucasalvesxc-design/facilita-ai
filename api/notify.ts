@@ -38,15 +38,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     await getMessaging().send({
       token: fcmToken,
-      notification: { title, body },
-      data: data ?? {},
+      // data-only: the SW's onBackgroundMessage shows the notification
+      // using notification+data causes duplicates (FCM auto-shows + SW shows)
+      data: {
+        title,
+        body,
+        ...(data ?? {}),
+      },
       webpush: {
-        notification: {
-          title,
-          body,
-          icon: '/logo1.png',
-          badge: '/logo1.png',
-        },
         fcmOptions: { link: '/' },
       },
     });

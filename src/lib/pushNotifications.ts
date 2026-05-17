@@ -1,4 +1,4 @@
-import { getMessaging, getToken, isSupported } from 'firebase/messaging';
+import { getMessaging, getToken, deleteToken, isSupported } from 'firebase/messaging';
 import { doc, updateDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
 
@@ -17,6 +17,20 @@ async function getMessagingInstance() {
   return messagingInstance;
 }
 
+async function waitForSWActivation(reg: ServiceWorkerRegistration): Promise<void> {
+  if (reg.active) return;
+  const sw = reg.installing || reg.waiting;
+  if (!sw) return;
+  return new Promise(resolve => {
+    sw.addEventListener('statechange', function handler() {
+      if (sw.state === 'activated') {
+        sw.removeEventListener('statechange', handler);
+        resolve();
+      }
+    });
+  });
+}
+
 export async function requestPushPermission(): Promise<string | null> {
   try {
     if (!VAPID_KEY) return null;
@@ -28,8 +42,12 @@ export async function requestPushPermission(): Promise<string | null> {
     const messaging = await getMessagingInstance();
     if (!messaging) return null;
 
-    // Use the existing sw.js (which now includes Firebase Messaging)
-    const swReg = await navigator.serviceWorker.ready;
+    // Register sw.js (which now includes Firebase Messaging) and wait for activation
+    const swReg = await navigator.serviceWorker.register('/sw.js');
+    await waitForSWActivation(swReg);
+
+    // Delete old invalid token before getting a fresh one
+    try { await deleteToken(messaging); } catch { /* ignore */ }
 
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY,
