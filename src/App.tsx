@@ -3084,15 +3084,23 @@ export default function App() {
                            </div>
                            <button
                              onClick={async () => {
-                               const token = await requestPushPermission();
-                               if (token) {
-                                 setActiveToast({ title: '🔔 Notificações ativadas!', message: 'Você receberá alertas de novas mensagens.' } as any);
-                               } else {
-                                 const perm = 'Notification' in window ? Notification.permission : 'unsupported';
-                                 if (perm === 'denied') alert('Notificações bloqueadas. Vá em Configurações do navegador → Notificações → facilitai.online → Permitir.');
-                                 else if (perm === 'granted') setActiveToast({ title: '🔔 Notificações já ativas!', message: 'Você já está recebendo notificações.' } as any);
-                                 else alert('Não foi possível ativar. Tente novamente.');
+                               const steps: string[] = [];
+                               try {
+                                 steps.push(`Suporte: ${'Notification' in window ? 'sim' : 'NÃO'}`);
+                                 steps.push(`SW: ${'serviceWorker' in navigator ? 'sim' : 'NÃO'}`);
+                                 steps.push(`Permissão atual: ${('Notification' in window ? Notification.permission : 'N/A')}`);
+                                 const token = await requestPushPermission();
+                                 steps.push(`Token: ${token ? token.slice(0, 20) + '...' : 'FALHOU'}`);
+                                 if (token) {
+                                   const res = await fetch('/api/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ recipientId: currentUser?.uid, title: '🔔 Teste', body: 'Notificação de teste do Facilita Aí!' }) });
+                                   const json = await res.json();
+                                   steps.push(`API: ${JSON.stringify(json)}`);
+                                   setActiveToast({ title: '🔔 Notificações ativadas!', message: 'Você receberá alertas de novas mensagens.' } as any);
+                                 }
+                               } catch (e: any) {
+                                 steps.push(`Erro: ${e?.message}`);
                                }
+                               alert(steps.join('\n'));
                              }}
                              className={`p-4 rounded-2xl border flex flex-col items-center gap-2 transition-all ${'Notification' in window && Notification.permission === 'granted' ? 'bg-orange-500/10 border-orange-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
                            >
