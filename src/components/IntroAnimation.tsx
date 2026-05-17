@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Hammer, Phone, MapPin, CheckCircle } from 'lucide-react';
 
 const OG = '#FF7A00';
@@ -16,16 +16,18 @@ const STORY = [
 
 export function IntroAnimation({ onComplete }: IntroAnimationProps) {
   const [phase, setPhase] = useState(0);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
     const t = [
-      setTimeout(() => setPhase(1), 200),   // logo mini
-      setTimeout(() => setPhase(2), 600),  // story beats
-      setTimeout(() => setPhase(3), 2200),  // logo grande
-      setTimeout(() => onComplete(), 3800),
+      setTimeout(() => setPhase(1), 200),
+      setTimeout(() => setPhase(2), 600),
+      setTimeout(() => setPhase(3), 2200),
+      setTimeout(() => onCompleteRef.current(), 3800),
     ];
     return () => t.forEach(clearTimeout);
-  }, [onComplete]);
+  }, []);
 
   return (
     <motion.div
