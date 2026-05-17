@@ -1,8 +1,10 @@
 import { initializeApp } from 'firebase/app';
-import { 
-  getAuth, 
-  GoogleAuthProvider, 
+import {
+  getAuth,
+  GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   updateProfile,
@@ -36,7 +38,10 @@ export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
+const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+export const signInWithGoogle = () =>
+  isMobile ? signInWithRedirect(auth, googleProvider) : signInWithPopup(auth, googleProvider);
+export { getRedirectResult };
 export const logout = () => auth.signOut();
 
 export enum OperationType {

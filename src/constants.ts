@@ -175,3 +175,7 @@ export const PRO_PLANS = [
     verified: true
   }
 ];
+
+export const KIRVANO_CHECKOUT_URL = (import.meta as any).env?.VITE_KIRVANO_CHECKOUT_URL || 'https://pay.kirvano.com/a9e4a8e1-a4c3-43de-933e-21cff8f3f8a3';
+export const VERIFICATION_BADGE_PRICE = 9.90;
+export const PRO_PLAN_PRICE = PRO_PLANS.find(p => p.id === 'pro')?.price ?? 27.90;

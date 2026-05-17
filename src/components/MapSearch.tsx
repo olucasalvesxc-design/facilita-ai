@@ -286,8 +286,8 @@ export const MapSearch: React.FC<MapSearchProps> = ({ searchTerm, professionals,
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[600px] min-h-[600px]">
-        <div className="space-y-4 overflow-y-auto pr-2 no-scrollbar">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-4 overflow-y-auto pr-2 no-scrollbar h-[420px] sm:h-[500px] lg:h-[600px]">
           {/* Header info */}
           <div className="flex items-center justify-between px-2 mb-4">
             <div className="flex items-center gap-2">
@@ -403,7 +403,7 @@ export const MapSearch: React.FC<MapSearchProps> = ({ searchTerm, professionals,
           )}
         </div>
 
-        <div className="rounded-[40px] overflow-hidden border border-white/10 relative shadow-2xl bg-black z-0">
+        <div className="rounded-[40px] overflow-hidden border border-white/10 relative shadow-2xl bg-black z-0 h-[320px] sm:h-[450px] lg:h-[600px]">
           <MapContainer 
             center={[-23.5505, -46.6333]} 
             zoom={12} 

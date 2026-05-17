@@ -10,21 +10,24 @@ import {
 } from '../lib/firebase';
 import { Product, Professional } from '../types';
 import { compressImage } from '../lib/imageUtils';
-import { PRO_PLANS } from '../constants';
+import { PRO_PLANS, KIRVANO_CHECKOUT_URL } from '../constants';
+import { auth } from '../lib/firebase';
 
 interface ProductManagementProps {
-  professional: Professional;
+  professional: Professional | null;
   onPublish?: () => void;
 }
 
 export const ProductManagement = ({ professional, onPublish }: ProductManagementProps) => {
+  if (!professional) return null;
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
-  
+  const [inlineError, setInlineError] = useState('');
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -64,15 +67,16 @@ export const ProductManagement = ({ professional, onPublish }: ProductManagement
 
   const handleAddNew = () => {
     if (isExpired) {
-      alert('Seu plano expirou. Renove sua assinatura para cadastrar novos produtos.');
+      setInlineError('Seu plano expirou. Renove sua assinatura para cadastrar novos produtos.');
       return;
     }
     if (!canAddMore) {
       setIsUpgradeModalOpen(true);
       return;
     }
-    resetForm(); 
-    setIsModalOpen(true); 
+    setInlineError('');
+    resetForm();
+    setIsModalOpen(true);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,12 +85,12 @@ export const ProductManagement = ({ professional, onPublish }: ProductManagement
 
     const MAX_MB = 10;
     if (file.size > MAX_MB * 1024 * 1024) {
-      alert(`Imagem muito grande! Máximo permitido: ${MAX_MB}MB. Seu arquivo: ${(file.size / 1024 / 1024).toFixed(1)}MB`);
+      setInlineError(`Imagem muito grande! Máximo permitido: ${MAX_MB}MB. Seu arquivo: ${(file.size / 1024 / 1024).toFixed(1)}MB`);
       e.target.value = '';
       return;
     }
     if (!file.type.startsWith('image/')) {
-      alert('Formato inválido. Envie uma imagem (JPG, PNG, WEBP).');
+      setInlineError('Formato inválido. Envie uma imagem (JPG, PNG, WEBP).');
       e.target.value = '';
       return;
     }
@@ -103,7 +107,7 @@ export const ProductManagement = ({ professional, onPublish }: ProductManagement
       setFormData(prev => ({ ...prev, imageUrl: compressed }));
     } catch (error) {
       console.error('Error uploading image:', error);
-      alert('Erro ao processar imagem. Tente novamente.');
+      setInlineError('Erro ao processar imagem. Tente novamente.');
     } finally {
       setUploadingImage(false);
     }
@@ -119,6 +123,7 @@ export const ProductManagement = ({ professional, onPublish }: ProductManagement
         ...formData,
         proId: professional.id,
         proName: professional.name,
+        proIsVerified: professional.isVerified === true,
         proSubscriptionPlan: professional.subscriptionType,
         coordinates: professional.coordinates || null,
         updatedAt: serverTimestamp()
@@ -221,6 +226,17 @@ export const ProductManagement = ({ professional, onPublish }: ProductManagement
         </motion.button>
       </div>
 
+      {/* Inline Error */}
+      {inlineError && (
+        <div className="bg-red-500/10 border border-red-500/30 p-4 rounded-2xl flex items-center gap-3">
+          <AlertTriangle className="text-red-500 shrink-0" size={18} />
+          <p className="text-red-400 text-sm flex-grow">{inlineError}</p>
+          <button onClick={() => setInlineError('')} className="text-gray-500 hover:text-white transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       {/* Expired Warning */}
       {isExpired && (
         <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-[32px] flex flex-col sm:flex-row items-center gap-6 justify-between animate-pulse">
@@ -233,7 +249,10 @@ export const ProductManagement = ({ professional, onPublish }: ProductManagement
               <p className="text-gray-400 text-xs italic">Seu plano expirou. Renove para reativar seus anúncios e cadastrar novos produtos.</p>
             </div>
           </div>
-          <button className="bg-red-500 text-white px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-red-500/20 shrink-0">
+          <button
+            onClick={() => window.open(KIRVANO_CHECKOUT_URL, '_blank')}
+            className="bg-red-500 text-white px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-red-500/20 shrink-0"
+          >
             Renovar Agora
           </button>
         </div>
@@ -628,7 +647,12 @@ export const ProductManagement = ({ professional, onPublish }: ProductManagement
                       ))}
                     </div>
 
-                    <button 
+                    <button
+                      onClick={() => {
+                        if (professional.subscriptionType !== plan.id) {
+                          window.open(KIRVANO_CHECKOUT_URL, '_blank');
+                        }
+                      }}
                       className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all ${
                         professional.subscriptionType === plan.id
                           ? 'bg-white/5 text-gray-500 cursor-default'

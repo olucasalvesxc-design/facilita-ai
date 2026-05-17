@@ -1,8 +1,8 @@
 import React from 'react';
-import { 
-  Home, Search, ShoppingBag, MessageSquare, 
-  Heart, Bell, User, Settings, Hammer, Flashlight, ShieldCheck,
-  ClipboardList, Package, Siren
+import {
+  Home, MessageSquare,
+  Heart, User, Settings, Hammer, Flashlight, ShieldCheck,
+  ClipboardList, Package
 } from 'lucide-react';
 
 const SidebarItem = ({ icon: Icon, label, active = false, onClick }: { icon: any, label: string, active?: boolean, onClick?: () => void }) => (
@@ -37,9 +37,8 @@ export function Sidebar({ activeTab, onTabChange, onBecomePro, userRole }: {
         <SidebarItem icon={Home} label="Início" active={activeTab === 'home'} onClick={() => onTabChange('home')} />
         <SidebarItem icon={ClipboardList} label="Serviços" active={activeTab === 'orders'} onClick={() => onTabChange('orders')} />
         <SidebarItem icon={Package} label="Produtos" active={activeTab === 'products'} onClick={() => onTabChange('products')} />
-        <SidebarItem icon={MessageSquare} label="Mensagens" active={activeTab === 'chat_list'} onClick={() => onTabChange('chat_list')} />
+        <SidebarItem icon={MessageSquare} label="Mensagens" active={activeTab === 'chat_list' || activeTab === 'chat'} onClick={() => onTabChange('chat_list')} />
         <SidebarItem icon={Heart} label="Favoritos" active={activeTab === 'favorites'} onClick={() => onTabChange('favorites')} />
-        <SidebarItem icon={Bell} label="Notificações" active={activeTab === 'notifications'} onClick={() => onTabChange('notifications')} />
         <SidebarItem icon={User} label="Perfil" active={activeTab === 'profile'} onClick={() => onTabChange('profile')} />
         {userRole === 'admin' && (
           <SidebarItem icon={ShieldCheck} label="Administração" active={activeTab === 'admin_dashboard'} onClick={() => onTabChange('admin_dashboard')} />
@@ -48,18 +47,28 @@ export function Sidebar({ activeTab, onTabChange, onBecomePro, userRole }: {
       </nav>
 
       {userRole === 'admin' ? (
-        <div
-          onClick={() => onTabChange('admin_dashboard')}
-          className="mt-8 p-6 rounded-3xl relative overflow-hidden group border cursor-pointer transition-all hover:opacity-90"
-          style={{ background: 'rgba(255,200,0,0.07)', borderColor: 'rgba(255,200,0,0.2)' }}
-        >
-          <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full blur-3xl" style={{ background: 'rgba(255,200,0,0.08)' }} />
-          <div className="flex items-center gap-2 mb-3 relative z-10">
-            <ShieldCheck size={16} style={{ color: '#FFD700' }} />
-            <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#FFD700' }}>Criador</span>
+        <div className="mt-8 space-y-2">
+          <div
+            onClick={() => onTabChange('admin_dashboard')}
+            className="p-4 rounded-2xl relative overflow-hidden border cursor-pointer transition-all hover:opacity-90"
+            style={{ background: 'rgba(255,200,0,0.07)', borderColor: 'rgba(255,200,0,0.2)' }}
+          >
+            <div className="flex items-center gap-2 relative z-10">
+              <ShieldCheck size={14} style={{ color: '#FFD700' }} />
+              <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#FFD700' }}>Criador · Admin</span>
+            </div>
+            <p className="text-gray-600 text-[10px] mt-0.5 relative z-10">Usuários · Assinaturas · Dados</p>
           </div>
-          <h3 className="font-bold text-base mb-1 relative z-10 text-white">Painel Admin</h3>
-          <p className="text-gray-500 text-xs relative z-10">Gerencie usuários, profissionais e assinaturas.</p>
+          <div
+            onClick={() => onTabChange('pro_dashboard')}
+            className="p-4 rounded-2xl border border-orange-500/20 cursor-pointer hover:bg-orange-500/5 transition-all"
+          >
+            <div className="flex items-center gap-2">
+              <Package size={14} className="text-orange-500" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">Painel Pro</span>
+            </div>
+            <p className="text-gray-600 text-[10px] mt-0.5">Serviços · Produtos · Solicitações</p>
+          </div>
         </div>
       ) : userRole === 'pro' ? (
         <div

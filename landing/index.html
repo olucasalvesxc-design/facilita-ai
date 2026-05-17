@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Facilita Aí — Profissionais, Produtos e Serviços perto de você</title>
+  <meta name="description" content="Encontre profissionais locais, compre produtos, agende serviços e acesse emergências com um clique. O Facilita Aí conecta quem precisa a quem oferece." />
+  <meta property="og:title" content="Facilita Aí — Tudo que você precisa, em um só lugar." />
+  <meta property="og:description" content="Profissionais locais, produtos, agenda e emergência — tudo no Facilita Aí." />
+  <meta property="og:image" content="https://facilita-ai.vercel.app/favicon.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://facilita-ai.vercel.app" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="theme-color" content="#FF7A00" />
+  <link rel="icon" href="https://facilita-ai.vercel.app/favicon.png" />
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: '#FF7A00',
+            'brand-dim': '#cc6200',
+            'brand-glow': 'rgba(255, 122, 0, 0.25)',
+            bg: '#070b13',
+            card: '#0d1117',
+            'card-2': '#121826',
+            muted: '#8892a4',
+            border: '#1e2a3a',
+          },
+          fontFamily: {
+            display: ['"Syne"', 'sans-serif'],
+            body: ['"DM Sans"', 'sans-serif'],
+          },
+          animation: {
+            'fade-up': 'fadeUp 0.6s ease both',
+            'fade-in': 'fadeIn 0.5s ease both',
+            'pulse-slow': 'pulse 3s ease-in-out infinite',
+            'float': 'float 4s ease-in-out infinite',
+            'glow-pulse': 'glowPulse 2s ease-in-out infinite',
+          },
+          keyframes: {
+            fadeUp: {
+              '0%': { opacity: '0', transform: 'translateY(24px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' },
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-12px)' },
+            },
+            glowPulse: {
+              '0%, 100%': { boxShadow: '0 0 20px rgba(255,122,0,0.3)' },
+              '50%': { boxShadow: '0 0 40px rgba(255,122,0,0.6)' },
+            },
+          },
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── config ─────────────────────────── */
+    :root {
+      --brand: #FF7A00;
+      --bg: #070b13;
+    }
+
+    * { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: #e2e8f0;
+      font-family: 'DM Sans', sans-serif;
+      overflow-x: hidden;
+    }
+
+    h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
+
+    /* ── noise grain overlay ─────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.5;
+    }
+
+    /* ── gradient mesh background ───────── */
+    .mesh-bg {
+      background:
+        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(255,122,0,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 110%, rgba(255,122,0,0.08) 0%, transparent 55%),
+        #070b13;
+    }
+
+    /* ── card glow on hover ──────────────── */
+    .card-glow {
+      border: 1px solid #1e2a3a;
+      transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
+    }
+    .card-glow:hover {
+      border-color: rgba(255,122,0,0.5);
+      box-shadow: 0 0 30px rgba(255,122,0,0.15), 0 8px 32px rgba(0,0,0,0.4);
+      transform: translateY(-4px);
+    }
+
+    /* ── plan card ───────────────────────── */
+    .plan-popular {
+      border: 2px solid #FF7A00;
+      box-shadow: 0 0 40px rgba(255,122,0,0.2), 0 0 80px rgba(255,122,0,0.08);
+    }
+
+    /* ── scrollbar hidden ────────────────── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #070b13; }
+    ::-webkit-scrollbar-thumb { background: #1e2a3a; border-radius: 2px; }
+
+    /* ── nav blur ────────────────────────── */
+    .nav-blur {
+      background: rgba(7,11,19,0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+
+    /* ── reveal animation on scroll ─────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── orange text gradient ────────────── */
+    .text-gradient {
+      background: linear-gradient(135deg, #FF7A00 0%, #ff9d3e 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── phone mockup ───────────────────── */
+    .phone-screen {
+      background: linear-gradient(160deg, #0d1117 0%, #121826 100%);
+      border: 1px solid rgba(255,122,0,0.2);
+    }
+
+    /* ── divider dot ─────────────────────── */
+    .dot-divider {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dot-divider::before,
+    .dot-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(255,122,0,0.3), transparent);
+    }
+
+    /* ── btn primary ─────────────────────── */
+    .btn-primary {
+      background: #FF7A00;
+      color: #fff;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+    }
+    .btn-primary:hover {
+      background: #e86e00;
+      box-shadow: 0 0 24px rgba(255,122,0,0.45);
+      transform: translateY(-2px);
+    }
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-outline {
+      border: 1.5px solid rgba(255,122,0,0.5);
+      color: #FF7A00;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      transition: border-color 0.2s, background 0.2s, transform 0.15s;
+    }
+    .btn-outline:hover {
+      border-color: #FF7A00;
+      background: rgba(255,122,0,0.08);
+      transform: translateY(-2px);
+    }
+
+    /* ── whatsapp btn ────────────────────── */
+    #wa-btn {
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+    #wa-btn:hover {
+      transform: scale(1.1) rotate(-5deg);
+      box-shadow: 0 0 32px rgba(37,211,102,0.5);
+    }
+
+    /* ── responsive video ────────────────── */
+    .video-wrapper {
+      position: relative;
+      padding-bottom: 56.25%;
+      height: 0;
+      overflow: hidden;
+      border-radius: 16px;
+      border: 1px solid rgba(255,122,0,0.2);
+    }
+    .video-wrapper iframe,
+    .video-wrapper video {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      border-radius: 16px;
+    }
+
+    /* ── subtle line accent ──────────────── */
+    .orange-line {
+      display: inline-block;
+      width: 48px;
+      height: 3px;
+      background: #FF7A00;
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body class="mesh-bg">
+
+  <!-- ═══════════════════════════════════════ NAV ═══ -->
+  <nav class="nav-blur fixed top-0 left-0 right-0 z-50">
+    <div class="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
+      <!-- Logo -->
+      <a href="#hero" class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-brand flex items-center justify-center shadow-lg">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+          </svg>
+        </div>
+        <span class="font-display font-bold text-white text-lg tracking-tight">Facilita Aí</span>
+      </a>
+
+      <!-- Links desktop -->
+      <div class="hidden md:flex items-center gap-6 text-sm text-muted font-medium">
+        <a href="#funcionalidades" class="hover:text-white transition-colors">Funcionalidades</a>
+        <a href="#profissionais" class="hover:text-white transition-colors">Para Profissionais</a>
+        <a href="#planos" class="hover:text-white transition-colors">Planos</a>
+        <a href="#video" class="hover:text-white transition-colors">Tutorial</a>
+      </div>
+
+      <!-- CTA nav -->
+      <a href="https://facilita-ai.vercel.app" target="_blank" class="btn-primary px-5 py-2 rounded-full text-sm hidden sm:inline-block">
+        Entrar no App
+      </a>
+
+      <!-- Mobile menu icon -->
+      <button id="menu-btn" class="sm:hidden text-muted hover:text-white" aria-label="Menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Mobile menu -->
+    <div id="mobile-menu" class="hidden sm:hidden px-5 pb-4 flex flex-col gap-3 text-sm">
+      <a href="#funcionalidades" class="text-muted hover:text-white py-1.5">Funcionalidades</a>
+      <a href="#profissionais" class="text-muted hover:text-white py-1.5">Para Profissionais</a>
+      <a href="#planos" class="text-muted hover:text-white py-1.5">Planos</a>
+      <a href="#video" class="text-muted hover:text-white py-1.5">Tutorial</a>
+      <a href="https://facilita-ai.vercel.app" target="_blank" class="btn-primary px-5 py-2.5 rounded-full text-center mt-1">Entrar no App</a>
+    </div>
+  </nav>
+
+  <!-- ════════════════════════════════════ HERO ═══ -->
+  <section id="hero" class="relative min-h-screen flex flex-col items-center justify-center pt-24 pb-16 px-5 overflow-hidden">
+    <!-- Background glow blobs -->
+    <div class="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-brand/10 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="absolute bottom-1/3 left-1/4 w-[300px] h-[200px] bg-brand/6 rounded-full blur-[100px] pointer-events-none"></div>
+
+    <div class="max-w-6xl mx-auto w-full grid lg:grid-cols-2 gap-12 items-center">
+      <!-- Left: text -->
+      <div class="text-center lg:text-left space-y-6">
+        <!-- Badge -->
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-brand/30 bg-brand/8 text-brand text-xs font-semibold tracking-wide">
+          <span class="w-1.5 h-1.5 rounded-full bg-brand animate-pulse-slow inline-block"></span>
+          Plataforma local de serviços
+        </div>
+
+        <!-- Headline -->
+        <h1 class="text-4xl sm:text-5xl xl:text-6xl font-display font-extrabold leading-tight text-white">
+          Tudo que você<br/>
+          precisa, em<br/>
+          <span class="text-gradient">um só lugar.</span>
+        </h1>
+
+        <!-- Subheadline -->
+        <p class="text-muted text-base sm:text-lg max-w-md mx-auto lg:mx-0 leading-relaxed">
+          Profissionais locais, produtos à venda, agenda de serviços e acesso rápido à emergência — na palma da sua mão.
+        </p>
+
+        <!-- CTAs -->
+        <div class="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
+          <a href="https://facilita-ai.vercel.app" target="_blank" class="btn-primary px-7 py-3.5 rounded-full text-base inline-block text-center">
+            Conhecer o App
+          </a>
+          <a href="#video" class="btn-outline px-7 py-3.5 rounded-full text-base inline-block text-center">
+            <span class="flex items-center justify-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+              Assistir Tutorial
+            </span>
+          </a>
+        </div>
+
+        <!-- Trust line -->
+        <p class="text-xs text-muted/60 mt-1">Gratuito para clientes · Planos acessíveis para profissionais</p>
+      </div>
+
+      <!-- Right: phone mockup -->
+      <div class="flex justify-center lg:justify-end">
+        <div class="relative animate-float">
+          <!-- Glow behind phone -->
+          <div class="absolute inset-0 rounded-[40px] bg-brand/20 blur-[60px] scale-90 translate-y-4"></div>
+
+          <!-- Phone frame -->
+          <div class="relative w-64 sm:w-72 bg-[#0a0f1a] rounded-[40px] shadow-2xl overflow-hidden" style="border: 2px solid rgba(255,122,0,0.25);">
+            <!-- Status bar -->
+            <div class="flex justify-between items-center px-6 pt-4 pb-1 text-[10px] text-white/40">
+              <span>9:41</span>
+              <div class="flex gap-1 items-center">
+                <svg width="12" height="8" viewBox="0 0 12 8" fill="currentColor">
+                  <rect x="0" y="4" width="2" height="4" rx="0.5" opacity="0.4"/>
+                  <rect x="3" y="2" width="2" height="6" rx="0.5" opacity="0.6"/>
+                  <rect x="6" y="0" width="2" height="8" rx="0.5"/>
+                  <rect x="10" y="1" width="2" height="6" rx="0.5" opacity="0.3"/>
+                </svg>
+                <svg width="12" height="8" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M1.5 8.5l21-7-7 21-5-8z"/>
+                </svg>
+              </div>
+            </div>
+
+            <!-- App screen -->
+            <div class="phone-screen mx-3 mb-4 rounded-2xl p-3 space-y-2.5" style="min-height: 460px;">
+              <!-- Header app -->
+              <div class="flex items-center justify-between mb-1">
+                <div>
+                  <div class="text-[10px] text-white/40">Olá 👋</div>
+                  <div class="text-sm font-bold text-white font-display">Facilita Aí</div>
+                </div>
+                <div class="w-7 h-7 rounded-full bg-brand/20 border border-brand/30 flex items-center justify-center">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FF7A00" stroke-width="2.5">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Search bar -->
+              <div class="bg-white/5 border border-white/8 rounded-xl px-3 py-2 flex items-center gap-2">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8892a4" stroke-width="2.5">
+                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+                <span class="text-[10px] text-white/30">Buscar profissional ou produto...</span>
+              </div>
+
+              <!-- Category chips -->
+              <div class="flex gap-1.5 overflow-hidden">
+                <span class="bg-brand text-white text-[8px] font-bold px-2 py-0.5 rounded-full">Todos</span>
+                <span class="bg-white/5 text-white/50 text-[8px] px-2 py-0.5 rounded-full border border-white/8">Profissionais</span>
+                <span class="bg-white/5 text-white/50 text-[8px] px-2 py-0.5 rounded-full border border-white/8">Produtos</span>
+              </div>
+
+              <!-- Pro cards -->
+              <div class="space-y-1.5">
+                <div class="text-[9px] text-white/40 font-semibold uppercase tracking-wider">Destaques</div>
+                <!-- card 1 -->
+                <div class="bg-white/4 border border-white/8 rounded-xl p-2.5 flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex-shrink-0"></div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-[11px] font-semibold text-white truncate">Carlos Eletricista</div>
+                    <div class="text-[9px] text-white/40">Eletricidade · ⭐ 4.9</div>
+                  </div>
+                  <div class="w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0"></div>
+                </div>
+                <!-- card 2 -->
+                <div class="bg-white/4 border border-white/8 rounded-xl p-2.5 flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex-shrink-0"></div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-[11px] font-semibold text-white truncate">Ana Pintora</div>
+                    <div class="text-[9px] text-white/40">Pintura · ⭐ 4.8</div>
+                  </div>
+                  <div class="w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0"></div>
+                </div>
+                <!-- card 3 -->
+                <div class="bg-white/4 border border-white/8 rounded-xl p-2.5 flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex-shrink-0"></div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-[11px] font-semibold text-white truncate">Pedro Encanador</div>
+                    <div class="text-[9px] text-white/40">Hidráulica · ⭐ 4.7</div>
+                  </div>
+                  <div class="w-1.5 h-1.5 rounded-full bg-yellow-400 flex-shrink-0"></div>
+                </div>
+              </div>
+
+              <!-- Emergency quick access -->
+              <div class="bg-red-500/10 border border-red-500/25 rounded-xl p-2.5 flex items-center gap-2">
+                <div class="w-6 h-6 rounded-lg bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.99 15a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.9 4.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 11a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 17.92z"/>
+                  </svg>
+                </div>
+                <div>
+                  <div class="text-[10px] font-semibold text-red-400">Emergência</div>
+                  <div class="text-[8px] text-white/30">Serviços 24h disponíveis</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Home indicator -->
+            <div class="flex justify-center pb-3">
+              <div class="w-24 h-1 bg-white/20 rounded-full"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scroll indicator -->
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/20 animate-bounce">
+      <span class="text-xs tracking-widest uppercase">Explorar</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 5v14M5 12l7 7 7-7"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ O QUE É ═══ -->
+  <section id="sobre" class="py-24 px-5">
+    <div class="max-w-3xl mx-auto text-center reveal">
+      <!-- Icon -->
+      <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-brand/10 border border-brand/20 mb-6">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF7A00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+
+      <div class="dot-divider mb-5">
+        <span class="text-brand text-sm font-semibold tracking-widest uppercase">O que é o Facilita Aí?</span>
+      </div>
+
+      <h2 class="text-3xl sm:text-4xl font-display font-bold text-white mb-6 leading-snug">
+        Uma plataforma feita para <span class="text-gradient">conectar</span> quem precisa com quem oferece.
+      </h2>
+
+      <p class="text-muted text-lg leading-relaxed">
+        O <strong class="text-white">Facilita Aí</strong> é um aplicativo que reúne profissionais locais, produtos à venda, agendamento de serviços e acesso rápido a emergências — tudo em um único lugar. Seja para contratar um eletricista, comprar um produto da sua cidade ou chamar ajuda com urgência, o Facilita Aí transforma o que era complicado em algo simples e rápido.
+      </p>
+    </div>
+  </section>
+
+  <!-- ═════════════════════ FUNCIONALIDADES ═══ -->
+  <section id="funcionalidades" class="py-24 px-5">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-14 reveal">
+        <div class="dot-divider mb-4">
+          <span class="text-brand text-sm font-semibold tracking-widest uppercase">Funcionalidades</span>
+        </div>
+        <h2 class="text-3xl sm:text-4xl font-display font-bold text-white">
+          Tudo que você precisa <span class="text-gradient">em um clique</span>
+        </h2>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Feature 1 -->
+        <div class="card-glow bg-card rounded-2xl p-6 reveal" style="transition-delay: 0.05s;">
+          <div class="w-11 h-11 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mb-4">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FF7A00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <h3 class="font-display font-bold text-white text-lg mb-2">Encontre Profissionais</h3>
+          <p class="text-muted text-sm leading-relaxed">Eletricistas, pintores, encanadores e muito mais. Veja perfis completos, avaliações e chame no WhatsApp.</p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="card-glow bg-card rounded-2xl p-6 reveal" style="transition-delay: 0.1s;">
+          <div class="w-11 h-11 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mb-4">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FF7A00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18"/>
+              <path d="M16 10a4 4 0 0 1-8 0"/>
+            </svg>
+          </div>
+          <h3 class="font-display font-bold text-white text-lg mb-2">Compre Produtos Locais</h3>
+          <p class="text-muted text-sm leading-relaxed">Acesse um catálogo de produtos de vendedores da sua região e apoie o comércio local.</p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="card-glow bg-card rounded-2xl p-6 reveal" style="transition-delay: 0.15s;">
+          <div class="w-11 h-11 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mb-4">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FF7A00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+              <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>
+            </svg>
+          </div>
+          <h3 class="font-display font-bold text-white text-lg mb-2">Agende Serviços</h3>
+          <p class="text-muted text-sm leading-relaxed">Marque horários diretamente com profissionais e gerencie sua agenda de forma simples e organizada.</p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="card-glow bg-card rounded-2xl p-6 reveal" style="transition-delay: 0.2s;">
+          <div class="w-11 h-11 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mb-4">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FF7A00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+              <path d="M2 12h20"/>
+            </svg>
+          </div>
+          <h3 class="font-display font-bold text-white text-lg mb-2">Busque Perto de Você</h3>
+          <p class="text-muted text-sm leading-relaxed">Filtre por localização e encontre quem está mais perto. Mapa interativo integrado para facilitar.</p>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="card-glow bg-card rounded-2xl p-6 reveal" style="transition-delay: 0.25s;">
+          <div class="w-11 h-11 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-4">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/>
+              <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <h3 class="font-display font-bold text-white text-lg mb-2">Acesso Rápido à Emergência</h3>
+          <p class="text-muted text-sm leading-relaxed">Seção dedicada para serviços urgentes. Encontre profissionais disponíveis 24h em situações críticas.</p>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="card-glow bg-card rounded-2xl p-6 reveal" style="transition-delay: 0.3s;">
+          <div class="w-11 h-11 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mb-4">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.99 15 19.79 19.79 0 0 1 1.92 6.34 2 2 0 0 1 3.9 4.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 11a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 19.92z"/>
+            </svg>
+          </div>
+          <h3 class="font-display font-bold text-white text-lg mb-2">Chame no WhatsApp</h3>
+          <p class="text-muted text-sm leading-relaxed">Um toque e você já está conversando diretamente com o profissional. Sem intermediários, sem burocracia.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ PARA PROFISSIONAIS ═══ -->
+  <section id="profissionais" class="py-24 px-5">
+    <div class="max-w-6xl mx-auto">
+      <div class="relative overflow-hidden rounded-3xl bg-card-2 border border-border p-8 sm:p-12 reveal">
+        <!-- BG accent -->
+        <div class="absolute top-0 right-0 w-72 h-72 bg-brand/8 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+        <div class="absolute bottom-0 left-1/3 w-48 h-48 bg-brand/5 rounded-full blur-[60px] pointer-events-none"></div>
+
+        <div class="relative grid lg:grid-cols-2 gap-10 items-center">
+          <!-- Left -->
+          <div class="space-y-5">
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand/10 border border-brand/20 text-brand text-xs font-bold uppercase tracking-widest">
+              Para Profissionais
+            </div>
+            <h2 class="text-3xl sm:text-4xl font-display font-bold text-white leading-snug">
+              Você presta serviço<br/>e quer <span class="text-gradient">mais clientes?</span>
+            </h2>
+            <p class="text-muted text-base leading-relaxed">
+              Crie seu perfil no Facilita Aí, adicione seus serviços, defina seu preço e comece a aparecer para centenas de pessoas que estão buscando exatamente o que você oferece. Simples assim.
+            </p>
+
+            <!-- Benefits list -->
+            <ul class="space-y-2.5">
+              <li class="flex items-center gap-2.5 text-sm text-muted">
+                <div class="w-5 h-5 rounded-full bg-brand/20 flex items-center justify-center flex-shrink-0">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FF7A00" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                Perfil profissional completo com portfólio
+              </li>
+              <li class="flex items-center gap-2.5 text-sm text-muted">
+                <div class="w-5 h-5 rounded-full bg-brand/20 flex items-center justify-center flex-shrink-0">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FF7A00" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                Agenda integrada para gerenciar horários
+              </li>
+              <li class="flex items-center gap-2.5 text-sm text-muted">
+                <div class="w-5 h-5 rounded-full bg-brand/20 flex items-center justify-center flex-shrink-0">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FF7A00" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                Clientes entram em contato direto via WhatsApp
+              </li>
+              <li class="flex items-center gap-2.5 text-sm text-muted">
+                <div class="w-5 h-5 rounded-full bg-brand/20 flex items-center justify-center flex-shrink-0">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FF7A00" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                Destaque regional e solicitações inteligentes
+              </li>
+            </ul>
+
+            <a href="https://facilita-ai.vercel.app" target="_blank" class="btn-primary px-7 py-3.5 rounded-full text-base inline-block">
+              Quero ser profissional
+            </a>
+          </div>
+
+          <!-- Right: stats decorative -->
+          <div class="grid grid-cols-2 gap-4">
+            <div class="bg-bg/60 border border-border rounded-2xl p-5 text-center space-y-1">
+              <div class="text-3xl font-display font-extrabold text-gradient">100%</div>
+              <div class="text-xs text-muted">Perfil personalizado</div>
+            </div>
+            <div class="bg-bg/60 border border-border rounded-2xl p-5 text-center space-y-1">
+              <div class="text-3xl font-display font-extrabold text-gradient">24h</div>
+              <div class="text-xs text-muted">Visível na plataforma</div>
+            </div>
+            <div class="bg-bg/60 border border-border rounded-2xl p-5 text-center space-y-1">
+              <div class="text-3xl font-display font-extrabold text-gradient">0</div>
+              <div class="text-xs text-muted">Comissão por serviço</div>
+            </div>
+            <div class="bg-bg/60 border border-border rounded-2xl p-5 text-center space-y-1">
+              <div class="text-3xl font-display font-extrabold text-gradient">∞</div>
+              <div class="text-xs text-muted">Clientes potenciais</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════ VIDEO TUTORIAL ═══ -->
+  <section id="video" class="py-24 px-5">
+    <div class="max-w-4xl mx-auto">
+      <div class="text-center mb-10 reveal">
+        <div class="dot-divider mb-4">
+          <span class="text-brand text-sm font-semibold tracking-widest uppercase">Tutorial</span>
+        </div>
+        <h2 class="text-3xl sm:text-4xl font-display font-bold text-white mb-3">
+          Veja como funciona <span class="text-gradient">na prática</span>
+        </h2>
+        <p class="text-muted text-base max-w-xl mx-auto">
+          Assista ao tutorial e entenda como usar o Facilita Aí em poucos minutos.
+        </p>
+      </div>
+
+      <div class="reveal" id="video-container">
+        <!-- Video is rendered via JavaScript below using VIDEO_TUTORIAL_URL -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════ PLANOS ═══ -->
+  <section id="planos" class="py-24 px-5">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-14 reveal">
+        <div class="dot-divider mb-4">
+          <span class="text-brand text-sm font-semibold tracking-widest uppercase">Planos</span>
+        </div>
+        <h2 class="text-3xl sm:text-4xl font-display font-bold text-white mb-3">
+          Escolha o plano <span class="text-gradient">ideal para você</span>
+        </h2>
+        <p class="text-muted">Para clientes é gratuito. Para profissionais, escolha o seu nível.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+        <!-- Start -->
+        <div class="card-glow bg-card rounded-2xl p-7 reveal" style="transition-delay: 0.05s;">
+          <div class="text-muted text-xs font-bold uppercase tracking-widest mb-3">Start</div>
+          <div class="flex items-end gap-1 mb-1">
+            <span class="text-4xl font-display font-extrabold text-white">R$9</span>
+            <span class="text-2xl font-display font-extrabold text-white">,90</span>
+            <span class="text-muted text-sm mb-1">/mês</span>
+          </div>
+          <p class="text-muted text-sm mb-6">Ideal para começar e ganhar visibilidade.</p>
+
+          <ul class="space-y-2.5 mb-7">
+            <li class="flex items-center gap-2 text-sm text-muted"><span class="text-brand">✓</span> Perfil básico de profissional</li>
+            <li class="flex items-center gap-2 text-sm text-muted"><span class="text-brand">✓</span> Até 3 serviços cadastrados</li>
+            <li class="flex items-center gap-2 text-sm text-muted"><span class="text-brand">✓</span> Listagem na busca regional</li>
+            <li class="flex items-center gap-2 text-sm text-muted"><span class="text-brand">✓</span> Contato via WhatsApp</li>
+            <li class="flex items-center gap-2 text-sm text-muted/40"><span>✗</span> Agenda integrada</li>
+            <li class="flex items-center gap-2 text-sm text-muted/40"><span>✗</span> Modo emergência</li>
+          </ul>
+
+          <a href="https://facilita-ai.vercel.app" target="_blank" class="btn-outline w-full py-3 rounded-full text-sm text-center block">
+            Começar agora
+          </a>
+        </div>
+
+        <!-- Pro (Popular) -->
+        <div class="relative bg-card-2 rounded-2xl p-7 plan-popular reveal" style="transition-delay: 0.1s;">
+          <!-- Badge -->
+          <div class="absolute -top-3 left-1/2 -translate-x-1/2">
+            <span class="bg-brand text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full">Mais Popular</span>
+          </div>
+
+          <div class="text-brand text-xs font-bold uppercase tracking-widest mb-3">Pro</div>
+          <div class="flex items-end gap-1 mb-1">
+            <span class="text-4xl font-display font-extrabold text-white">R$27</span>
+            <span class="text-2xl font-display font-extrabold text-white">,90</span>
+            <span class="text-muted text-sm mb-1">/mês</span>
+          </div>
+          <p class="text-muted text-sm mb-6">Para quem quer crescer de verdade.</p>
+
+          <ul class="space-y-2.5 mb-7">
+            <li class="flex items-center gap-2 text-sm text-white"><span class="text-brand">✓</span> Tudo do Start</li>
+            <li class="flex items-center gap-2 text-sm text-white"><span class="text-brand">✓</span> Serviços ilimitados</li>
+            <li class="flex items-center gap-2 text-sm text-white"><span class="text-brand">✓</span> Agenda integrada</li>
+            <li class="flex items-center gap-2 text-sm text-white"><span class="text-brand">✓</span> Destaque na busca</li>
+            <li class="flex items-center gap-2 text-sm text-white"><span class="text-brand">✓</span> Solicitações inteligentes</li>
+            <li class="flex items-center gap-2 text-sm text-muted/40"><span>✗</span> Modo emergência 24h</li>
+          </ul>
+
+          <a href="https://facilita-ai.vercel.app" target="_blank" class="btn-primary w-full py-3 rounded-full text-sm text-center block animate-glow-pulse">
+            Assinar Pro
+          </a>
+        </div>
+
+        <!-- Ultra -->
+        <div class="card-glow bg-card rounded-2xl p-7 reveal" style="transition-delay: 0.15s;">
+          <div class="text-muted text-xs font-bold uppercase tracking-widest mb-3">Ultra</div>
+          <div class="flex items-end gap-1 mb-1">
+            <span class="text-4xl font-display font-extrabold text-white">R$87</span>
+            <span class="text-2xl font-display font-extrabold text-white">,90</span>
+            <span class="text-muted text-sm mb-1">/mês</span>
+          </div>
+          <p class="text-muted text-sm mb-6">O máximo de visibilidade e recursos.</p>
+
+          <ul class="space-y-2.5 mb-7">
+            <li class="flex items-center gap-2 text-sm text-muted"><span class="text-brand">✓</span> Tudo do Pro</li>
+            <li class="flex items-center gap-2 text-sm text-muted"><span class="text-brand">✓</span> Modo emergência 24h</li>
+            <li class="flex items-center gap-2 text-sm text-muted"><span class="text-brand">✓</span> Topo da busca regional</li>
+            <li class="flex items-center gap-2 text-sm text-muted"><span class="text-brand">✓</span> Badge verificado exclusivo</li>
+            <li class="flex items-center gap-2 text-sm text-muted"><span class="text-brand">✓</span> Relatório de visitas</li>
+            <li class="flex items-center gap-2 text-sm text-muted"><span class="text-brand">✓</span> Suporte prioritário</li>
+          </ul>
+
+          <a href="https://facilita-ai.vercel.app" target="_blank" class="btn-outline w-full py-3 rounded-full text-sm text-center block">
+            Assinar Ultra
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════ CTA FINAL ═══ -->
+  <section id="cta" class="py-28 px-5">
+    <div class="max-w-3xl mx-auto text-center reveal">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand/15 border border-brand/30 mb-6">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF7A00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+        </svg>
+      </div>
+      <h2 class="text-4xl sm:text-5xl font-display font-extrabold text-white mb-4 leading-tight">
+        Comece a aparecer <span class="text-gradient">hoje.</span>
+      </h2>
+      <p class="text-muted text-lg mb-8 max-w-xl mx-auto">
+        Junte-se a profissionais e clientes que já estão usando o Facilita Aí para conectar o que precisam com quem oferece.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <a href="https://facilita-ai.vercel.app" target="_blank" class="btn-primary px-8 py-4 rounded-full text-base inline-block text-center">
+          Entrar no Facilita Aí
+        </a>
+        <a href="https://wa.me/5511999999999" target="_blank" class="btn-outline px-8 py-4 rounded-full text-base inline-block text-center">
+          Falar no WhatsApp
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ FOOTER ═══ -->
+  <footer class="border-t border-border py-12 px-5">
+    <div class="max-w-6xl mx-auto">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+        <!-- Brand -->
+        <div class="lg:col-span-2">
+          <div class="flex items-center gap-2.5 mb-3">
+            <div class="w-8 h-8 rounded-lg bg-brand flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+              </svg>
+            </div>
+            <span class="font-display font-bold text-white">Facilita Aí</span>
+          </div>
+          <p class="text-muted text-sm leading-relaxed max-w-xs">
+            A plataforma que conecta profissionais, produtos e serviços locais com quem precisa.
+          </p>
+          <!-- Social icons -->
+          <div class="flex gap-3 mt-4">
+            <a href="https://wa.me/5511999999999" target="_blank" aria-label="WhatsApp"
+               class="w-9 h-9 rounded-full bg-white/5 border border-border flex items-center justify-center text-muted hover:text-green-400 hover:border-green-400/30 transition-colors">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.025.507 3.934 1.395 5.608L0 24l6.545-1.379A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.798 9.798 0 0 1-5.273-1.536l-.378-.224-3.886.819.83-3.792-.246-.39A9.786 9.786 0 0 1 2.182 12C2.182 6.575 6.575 2.182 12 2.182S21.818 6.575 21.818 12 17.425 21.818 12 21.818z"/>
+              </svg>
+            </a>
+            <a href="https://instagram.com" target="_blank" aria-label="Instagram"
+               class="w-9 h-9 rounded-full bg-white/5 border border-border flex items-center justify-center text-muted hover:text-pink-400 hover:border-pink-400/30 transition-colors">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Links -->
+        <div>
+          <h4 class="font-display font-bold text-white text-sm mb-3 uppercase tracking-wide">Links Úteis</h4>
+          <ul class="space-y-2 text-sm text-muted">
+            <li><a href="#funcionalidades" class="hover:text-white transition-colors">Funcionalidades</a></li>
+            <li><a href="#profissionais" class="hover:text-white transition-colors">Para Profissionais</a></li>
+            <li><a href="#planos" class="hover:text-white transition-colors">Planos e Preços</a></li>
+            <li><a href="#video" class="hover:text-white transition-colors">Tutorial</a></li>
+            <li><a href="https://facilita-ai.vercel.app" target="_blank" class="hover:text-white transition-colors">Entrar no App</a></li>
+          </ul>
+        </div>
+
+        <!-- Legal -->
+        <div>
+          <h4 class="font-display font-bold text-white text-sm mb-3 uppercase tracking-wide">Legal</h4>
+          <ul class="space-y-2 text-sm text-muted">
+            <li><a href="#" class="hover:text-white transition-colors">Termos de Uso</a></li>
+            <li><a href="#" class="hover:text-white transition-colors">Política de Privacidade</a></li>
+            <li><a href="#" class="hover:text-white transition-colors">Política de Cookies</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Bottom bar -->
+      <div class="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <p class="text-xs text-muted/50">© 2025 Facilita Aí. Todos os direitos reservados.</p>
+        <p class="text-xs text-muted/30">Feito com ♥ para sua cidade</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ══════════════ WHATSAPP FLOATING BTN ═══ -->
+  <a id="wa-btn" href="https://wa.me/5511999999999" target="_blank" aria-label="Falar no WhatsApp"
+     class="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-green-500 shadow-lg flex items-center justify-center">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="white">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+      <path d="M12 0C5.373 0 0 5.373 0 12c0 2.025.507 3.934 1.395 5.608L0 24l6.545-1.379A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.798 9.798 0 0 1-5.273-1.536l-.378-.224-3.886.819.83-3.792-.246-.39A9.786 9.786 0 0 1 2.182 12C2.182 6.575 6.575 2.182 12 2.182S21.818 6.575 21.818 12 17.425 21.818 12 21.818z"/>
+    </svg>
+  </a>
+
+  <!-- ════════════════════════════ SCRIPTS ═══ -->
+  <script>
+    // ─────────────────────────────────────────────────────────
+    // VIDEO TUTORIAL CONFIGURATION
+    // Supported: YouTube URL, Vimeo URL, or direct MP4 URL
+    // Leave empty to show a placeholder card instead
+    // ─────────────────────────────────────────────────────────
+    const VIDEO_TUTORIAL_URL = '';
+
+    // ─── Render video ──────────────────────────────────────
+    function renderVideo() {
+      const container = document.getElementById('video-container');
+      if (!container) return;
+
+      if (!VIDEO_TUTORIAL_URL) {
+        container.innerHTML = `
+          <div class="rounded-2xl border border-dashed border-brand/25 bg-card/40 p-12 text-center">
+            <div class="w-14 h-14 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-4">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FF7A00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+            </div>
+            <p class="text-white font-display font-semibold text-lg mb-1">Tutorial em breve</p>
+            <p class="text-muted text-sm">Configure <code class="bg-white/5 px-1.5 py-0.5 rounded text-brand text-xs">VIDEO_TUTORIAL_URL</code> para exibir o vídeo aqui.</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Detect type
+      const url = VIDEO_TUTORIAL_URL.trim();
+      let embedHtml = '';
+
+      const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+      const vimeoMatch = url.match(/(?:vimeo\.com\/)(\d+)/);
+
+      if (ytMatch) {
+        const videoId = ytMatch[1];
+        embedHtml = `
+          <div class="video-wrapper">
+            <iframe
+              src="https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&showinfo=0"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+              title="Tutorial Facilita Aí"
+            ></iframe>
+          </div>
+        `;
+      } else if (vimeoMatch) {
+        const videoId = vimeoMatch[1];
+        embedHtml = `
+          <div class="video-wrapper">
+            <iframe
+              src="https://player.vimeo.com/video/${videoId}?color=FF7A00&title=0&byline=0&portrait=0"
+              frameborder="0"
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowfullscreen
+              title="Tutorial Facilita Aí"
+            ></iframe>
+          </div>
+        `;
+      } else if (url.match(/\.mp4(\?.*)?$/i)) {
+        embedHtml = `
+          <div class="video-wrapper">
+            <video controls preload="metadata" style="object-fit: cover;">
+              <source src="${url}" type="video/mp4">
+              Seu navegador não suporta o elemento de vídeo.
+            </video>
+          </div>
+        `;
+      } else {
+        embedHtml = `
+          <div class="rounded-2xl border border-red-500/25 bg-red-500/5 p-8 text-center">
+            <p class="text-red-400 text-sm">URL de vídeo inválida. Suporte: YouTube, Vimeo ou MP4.</p>
+          </div>
+        `;
+      }
+
+      container.innerHTML = embedHtml;
+    }
+
+    // ─── Mobile nav toggle ─────────────────────────────────
+    document.getElementById('menu-btn').addEventListener('click', () => {
+      const menu = document.getElementById('mobile-menu');
+      menu.classList.toggle('hidden');
+    });
+
+    // Close mobile menu when link clicked
+    document.querySelectorAll('#mobile-menu a').forEach(link => {
+      link.addEventListener('click', () => {
+        document.getElementById('mobile-menu').classList.add('hidden');
+      });
+    });
+
+    // ─── Scroll reveal ─────────────────────────────────────
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // ─── Nav active state on scroll ────────────────────────
+    const sections = document.querySelectorAll('section[id]');
+    const navLinks = document.querySelectorAll('nav a[href^="#"]');
+
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop - 100;
+        if (window.scrollY >= sectionTop) current = section.getAttribute('id');
+      });
+      navLinks.forEach(link => {
+        link.classList.toggle('text-white', link.getAttribute('href') === `#${current}`);
+      });
+    }, { passive: true });
+
+    // ─── Init ──────────────────────────────────────────────
+    renderVideo();
+  </script>
+
+</body>
+</html>

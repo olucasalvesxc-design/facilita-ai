@@ -6,13 +6,14 @@ import {
   Instagram, Globe, Check, Lock, Star, MessageSquare, Heart
 } from 'lucide-react';
 import { Professional, UserProfile } from '../types';
-import { db, auth, doc, setDoc, serverTimestamp, OperationType, handleFirestoreError } from '../lib/firebase';
+import { db, auth, doc, setDoc, updateDoc, serverTimestamp, OperationType, handleFirestoreError } from '../lib/firebase';
 import { compressImage } from '../lib/imageUtils';
 
 interface OnboardingProps {
   user: UserProfile;
   onComplete: (pro: Partial<Professional>) => void;
   onCancel: () => void;
+  inviterCode?: string;
 }
 
 const Spinner = ({ size = 20 }: { size?: number }) => (
@@ -22,7 +23,7 @@ const Spinner = ({ size = 20 }: { size?: number }) => (
   />
 );
 
-export const ProfessionalOnboarding = ({ user, onComplete, onCancel }: OnboardingProps) => {
+export const ProfessionalOnboarding = ({ user, onComplete, onCancel, inviterCode }: OnboardingProps) => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   
@@ -41,7 +42,13 @@ export const ProfessionalOnboarding = ({ user, onComplete, onCancel }: Onboardin
     bannerURL: '',
     documentUrl: '',
     workingHours: [
-      { day: 'Segunda - Sexta', start: '08:00', end: '18:00', active: true },
+      { day: 'Segunda', start: '08:00', end: '18:00', active: true },
+      { day: 'Terça', start: '08:00', end: '18:00', active: true },
+      { day: 'Quarta', start: '08:00', end: '18:00', active: true },
+      { day: 'Quinta', start: '08:00', end: '18:00', active: true },
+      { day: 'Sexta', start: '08:00', end: '18:00', active: true },
+      { day: 'Sábado', start: '08:00', end: '13:00', active: false },
+      { day: 'Domingo', start: '08:00', end: '13:00', active: false },
     ]
   });
 
@@ -69,7 +76,8 @@ export const ProfessionalOnboarding = ({ user, onComplete, onCancel }: Onboardin
     try {
       if (!auth.currentUser) return;
 
-      // Salva perfil como PENDENTE — só ativa após confirmação de pagamento pela Kirvano
+      const isInvited = !!inviterCode;
+
       const proData: Partial<Professional> = {
         ...formData,
         id: auth.currentUser.uid,
@@ -77,23 +85,37 @@ export const ProfessionalOnboarding = ({ user, onComplete, onCancel }: Onboardin
         rating: 5.0,
         reviewCount: 0,
         status: 'online',
-        isActive: false,
-        professionalStatus: 'pending',
-        subscriptionStatus: 'pending_payment',
-        subscriptionType: 'monthly_pro',
         onboardingCompleted: true,
         lastActiveAt: serverTimestamp(),
+        ...(isInvited
+          ? {
+              isActive: true,
+              professionalStatus: 'active',
+              subscriptionStatus: 'active',
+              subscriptionType: 'monthly_pro',
+              invitedBy: inviterCode,
+            }
+          : {
+              isActive: false,
+              professionalStatus: 'pending',
+              subscriptionStatus: 'pending_payment',
+              subscriptionType: 'monthly_pro',
+            }),
       };
 
       await setDoc(doc(db, 'professionals', auth.currentUser.uid), proData, { merge: true });
-      // NÃO atualiza role aqui — o webhook da Kirvano faz isso após pagamento confirmado
 
-      onComplete(proData);
-
-      // Redireciona para checkout
-      const baseUrl = import.meta.env.VITE_KIRVANO_CHECKOUT_URL || 'https://pay.kirvano.com/a9e4a8e1-a4c3-43de-933e-21cff8f3f8a3';
-      const email = encodeURIComponent(auth.currentUser.email || '');
-      window.location.href = `${baseUrl}?external_id=${auth.currentUser.uid}&email=${email}`;
+      if (isInvited) {
+        // Ativa a conta imediatamente — sem pagamento
+        await updateDoc(doc(db, 'users', auth.currentUser.uid), { role: 'pro' });
+        onComplete(proData);
+      } else {
+        // NÃO atualiza role aqui — o webhook da Kirvano faz isso após pagamento confirmado
+        onComplete(proData);
+        const baseUrl = (import.meta as any).env?.VITE_KIRVANO_CHECKOUT_URL || 'https://pay.kirvano.com/a9e4a8e1-a4c3-43de-933e-21cff8f3f8a3';
+        const email = encodeURIComponent(auth.currentUser.email || '');
+        window.location.href = `${baseUrl}?external_id=${auth.currentUser.uid}&email=${email}`;
+      }
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `professionals/${user.id}`);
     } finally {
@@ -112,7 +134,7 @@ export const ProfessionalOnboarding = ({ user, onComplete, onCancel }: Onboardin
           >
             <div className="text-center mb-10">
               <span className="text-[10px] bg-orange-500/10 text-orange-500 font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full border border-orange-500/20">Passo 01/03</span>
-              <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter mt-4">Perfil Profissional</h2>
+              <h2 className="text-xl sm:text-3xl font-black text-white italic uppercase tracking-tighter mt-4">Perfil Profissional</h2>
               <p className="text-gray-500 text-xs mt-2 uppercase tracking-widest font-bold">Como os clientes verão você</p>
             </div>
 
@@ -207,7 +229,7 @@ export const ProfessionalOnboarding = ({ user, onComplete, onCancel }: Onboardin
           >
             <div className="text-center mb-10">
               <span className="text-[10px] bg-blue-500/10 text-blue-500 font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full border border-blue-500/20">Passo 02/03</span>
-              <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter mt-4">Documentação e Banner</h2>
+              <h2 className="text-xl sm:text-3xl font-black text-white italic uppercase tracking-tighter mt-4">Documentação e Banner</h2>
               <p className="text-gray-500 text-xs mt-2 uppercase tracking-widest font-bold">Segurança para você e para o cliente</p>
             </div>
 
@@ -261,7 +283,7 @@ export const ProfessionalOnboarding = ({ user, onComplete, onCancel }: Onboardin
           >
             <div className="text-center mb-10">
               <span className="text-[10px] bg-green-500/10 text-green-500 font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full border border-green-500/20">Passo 03/03</span>
-              <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter mt-4">Valores e Atendimento</h2>
+              <h2 className="text-xl sm:text-3xl font-black text-white italic uppercase tracking-tighter mt-4">Valores e Atendimento</h2>
               <p className="text-gray-500 text-xs mt-2 uppercase tracking-widest font-bold">Defina como você trabalha</p>
             </div>
 

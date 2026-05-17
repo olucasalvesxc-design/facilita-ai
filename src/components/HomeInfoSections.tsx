@@ -245,11 +245,11 @@ export const Footer = () => {
           <p className="text-gray-500 text-sm leading-relaxed mb-6">A plataforma que conecta você aos melhores profissionais da sua região com agilidade e confiança.</p>
           <div className="flex items-center gap-4">
           {[
-            { icon: Instagram, id: 'instagram' },
-            { icon: Globe, id: 'globe' },
-            { icon: Mail, id: 'mail' }
-          ].map(({ icon: Icon, id }) => (
-              <a key={id} href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-500 hover:text-orange-500 hover:bg-orange-500/10 transition-all border border-white/5">
+            { icon: Instagram, id: 'instagram', href: 'https://www.instagram.com/facilitaai.app' },
+            { icon: Globe, id: 'globe', href: '#' },
+            { icon: Mail, id: 'mail', href: '#' }
+          ].map(({ icon: Icon, id, href }) => (
+              <a key={id} href={href} target={href !== '#' ? '_blank' : undefined} rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-500 hover:text-orange-500 hover:bg-orange-500/10 transition-all border border-white/5">
                 <Icon size={18} />
               </a>
           ))}

@@ -69,7 +69,7 @@ export const ProfessionalCard: React.FC<ProfessionalCardProps> = ({ pro, onSelec
 
       <div className="p-6">
         <div className="flex items-center gap-2 mb-1">
-          <h3 className="text-white font-black text-xl uppercase tracking-tighter italic leading-none group-hover:text-orange-500 transition-colors truncate">
+          <h3 className="text-white font-black text-base sm:text-xl uppercase tracking-tighter italic leading-none group-hover:text-orange-500 transition-colors truncate">
             {pro.name}
           </h3>
           {pro.isVerified && <ShieldCheck size={16} className="text-blue-500" />}
@@ -82,7 +82,7 @@ export const ProfessionalCard: React.FC<ProfessionalCardProps> = ({ pro, onSelec
           <div className="flex flex-col">
             <span className="text-gray-600 text-[9px] font-black uppercase tracking-widest leading-none mb-1">A partir de</span>
             <div className="flex items-baseline gap-1">
-              <span className="text-orange-500 text-2xl font-black italic leading-none">R$ {pro.pricePerService}</span>
+              <span className="text-orange-500 text-xl sm:text-2xl font-black italic leading-none">R$ {pro.pricePerService}</span>
             </div>
           </div>
           

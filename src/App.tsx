@@ -7,7 +7,7 @@ import {
   ChevronRight, Star, X, LogIn, LogOut, ShieldCheck, Clock, Calendar, Search as SearchIcon, Plus, Phone, Package, Siren,
   Compass, Trash2, CheckCircle, Camera, Instagram, Globe, MessageCircle, Share2, ClipboardList, CreditCard, Check,
   Lock, Minus, Users, History, CalendarCheck, ListOrdered, ChevronLeft, Map as MapIcon, MoreVertical, Send, Briefcase, Zap, 
-  Target, Info, HelpCircle, AlertTriangle
+  Target, Info, HelpCircle, AlertTriangle, Crown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { compressImage } from './lib/imageUtils';
@@ -23,30 +23,38 @@ import {
 } from './lib/firebase';
 import { clearExampleData } from './lib/seed';
 import { onAuthStateChanged } from 'firebase/auth';
+import { getRedirectResult } from './lib/firebase';
+import { requestPushPermission } from './lib/pushNotifications';
 import { Professional, Order, Product } from './types';
 import { Sidebar } from './components/Sidebar';
 import { ProfessionalCard } from './components/ProfessionalCard';
 import { ProductCard } from './components/ProductCard';
-import { ProductManagement } from './components/ProductManagement';
-import { EmergencySection } from './components/EmergencySection';
-import { MapComponent } from './components/MapComponent';
-import { ChatRoom } from './components/Chat';
-import { ChatList } from './components/ChatList';
-import { PROFESSIONS, POPULAR_CATEGORIES } from './constants';
+import { PlansModal } from './components/PlansModal';
+import { ImageCropModal } from './components/ImageCropModal';
+import { PROFESSIONS, POPULAR_CATEGORIES, PRO_PLAN_PRICE, VERIFICATION_BADGE_PRICE } from './constants';
 
-import { PortfolioManager, PortfolioGallery } from './components/Portfolio';
-import { MapSearch } from './components/MapSearch';
-import { PWATutorial } from './components/PWATutorial';
-import { 
-  StatsSection, HowItWorks, Testimonials, QuickTips, FAQSection, Footer, FeaturedCarousel, BrandShield 
-} from './components/HomeInfoSections';
-import { ProfessionalOnboarding } from './components/ProfessionalOnboarding';
-import { ServiceManagement } from './components/ServiceManagement';
-import { BookingSystem } from './components/BookingSystem';
 import { Onboarding } from './components/Onboarding';
-import { SmartBudgetModal } from './components/SmartBudgetModal';
 import { IntroAnimation } from './components/IntroAnimation';
 import { HeroAnimation } from './components/HeroAnimation';
+import {
+  StatsSection, HowItWorks, Testimonials, QuickTips, FAQSection, Footer, FeaturedCarousel, BrandShield
+} from './components/HomeInfoSections';
+
+// Lazy-loaded: only downloaded when the user navigates to each section
+const ProductManagement = React.lazy(() => import('./components/ProductManagement').then(m => ({ default: m.ProductManagement })));
+const EmergencySection  = React.lazy(() => import('./components/EmergencySection').then(m => ({ default: m.EmergencySection })));
+const MapComponent      = React.lazy(() => import('./components/MapComponent').then(m => ({ default: m.MapComponent })));
+const ChatRoom          = React.lazy(() => import('./components/Chat').then(m => ({ default: m.ChatRoom })));
+const ChatList          = React.lazy(() => import('./components/ChatList').then(m => ({ default: m.ChatList })));
+const PortfolioManager  = React.lazy(() => import('./components/Portfolio').then(m => ({ default: m.PortfolioManager })));
+const PortfolioGallery  = React.lazy(() => import('./components/Portfolio').then(m => ({ default: m.PortfolioGallery })));
+const MapSearch         = React.lazy(() => import('./components/MapSearch').then(m => ({ default: m.MapSearch })));
+const PWATutorial       = React.lazy(() => import('./components/PWATutorial').then(m => ({ default: m.PWATutorial })));
+const ProfessionalOnboarding = React.lazy(() => import('./components/ProfessionalOnboarding').then(m => ({ default: m.ProfessionalOnboarding })));
+const ServiceManagement = React.lazy(() => import('./components/ServiceManagement').then(m => ({ default: m.ServiceManagement })));
+const BookingSystem     = React.lazy(() => import('./components/BookingSystem').then(m => ({ default: m.BookingSystem })));
+const SmartBudgetModal  = React.lazy(() => import('./components/SmartBudgetModal').then(m => ({ default: m.SmartBudgetModal })));
+const CompletionModal   = React.lazy(() => import('./components/CompletionModal').then(m => ({ default: m.CompletionModal })));
 
 // --- Helper Components ---
 
@@ -66,7 +74,15 @@ class SectionErrorBoundary extends React.Component<{ children: React.ReactNode; 
         </div>
       );
     }
-    return this.props.children;
+    return (
+      <React.Suspense fallback={
+        <div className="flex items-center justify-center py-20">
+          <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      }>
+        {this.props.children}
+      </React.Suspense>
+    );
   }
 }
 
@@ -125,67 +141,121 @@ const CategoryCard = ({ imageURL, title, count, active, onClick }: any) => (
   </motion.div>
 );
 
-const OrderItem = ({ order, onRebuy, onCancel, onDelete, isCancelling, isDeleting }: any) => (
-  <div className="flex flex-col py-4 border-b border-white/5 last:border-0 group gap-3">
-    <div className="flex items-center justify-between cursor-pointer hover:bg-white/5 px-2 rounded-lg transition-colors">
-      <div className="flex flex-col">
-        <h4 className="font-bold text-sm text-white group-hover:text-orange-500 transition-colors uppercase tracking-tight">{order.serviceTitle}</h4>
-        <p className="text-gray-500 text-[10px]">{order.professionalName}</p>
-      </div>
-      <div className="flex items-center gap-3">
-        <div className={`px-2 py-1 rounded-lg text-[9px] font-bold ${
-          order.status === 'in_progress' ? 'bg-yellow-500/10 text-yellow-500' : 
-          order.status === 'completed' ? 'bg-green-500/10 text-green-500' : 
-          order.status === 'cancelled' ? 'bg-red-500/10 text-red-500' :
-          order.status === 'scheduled' ? 'bg-orange-500/10 text-orange-500' :
-          'bg-blue-500/10 text-blue-500'
-        }`}>
-          {order.status === 'in_progress' ? 'Em andamento' : 
-           order.status === 'completed' ? 'Concluído' : 
-           order.status === 'cancelled' ? 'Cancelado' : 
-           order.status === 'scheduled' ? 'Agendado' : 'Aguardando'}
+const STATUS_LABEL: Record<string, string> = {
+  pending: 'Aguardando', confirmed: 'Confirmado', scheduled: 'Agendado',
+  in_progress: 'Em andamento', completed: 'Concluído', cancelled: 'Cancelado',
+};
+const STATUS_COLOR: Record<string, string> = {
+  pending: 'bg-blue-500/10 text-blue-400',
+  confirmed: 'bg-orange-500/10 text-orange-400',
+  scheduled: 'bg-orange-500/10 text-orange-400',
+  in_progress: 'bg-yellow-500/10 text-yellow-400',
+  completed: 'bg-green-500/10 text-green-400',
+  cancelled: 'bg-red-500/10 text-red-400',
+};
+
+const OrderItem = ({ order, onRebuy, onCancel, onDelete, onAdvanceStatus, onComplete, isCancelling, isDeleting, isAdvancing }: any) => {
+  const uid = auth.currentUser?.uid;
+  const isClient = uid === order.clientId;
+  const isPro = uid === order.professionalId;
+  const isSmartBudgetPending = order.type === 'smart_budget' && !order.professionalId;
+  const canAdvance = !isSmartBudgetPending && (isClient || isPro) && (order.status === 'confirmed' || order.status === 'pending' || order.status === 'in_progress' || order.status === 'scheduled');
+  const nextStatus = (order.status === 'confirmed' || order.status === 'pending' || order.status === 'scheduled') ? 'in_progress' : 'completed';
+  const nextLabel = nextStatus === 'in_progress' ? 'Iniciar Serviço' : 'Marcar Concluído';
+  const alreadyRated = order.rating && (isClient ? order.rating.clientRating : order.rating.proRating);
+
+  return (
+    <div className="flex flex-col py-4 border-b border-white/5 last:border-0 group gap-3">
+      <div className="flex items-center justify-between cursor-pointer hover:bg-white/5 px-2 rounded-lg transition-colors">
+        <div className="flex flex-col gap-0.5">
+          <h4 className="font-bold text-sm text-white group-hover:text-orange-500 transition-colors uppercase tracking-tight">
+            {order.serviceTitle || order.title}
+          </h4>
+          <p className="text-gray-500 text-[10px]">
+            {order.type === 'smart_budget' ? (order.category || 'Orçamento Inteligente') : (order.professionalName || order.clientName)}
+          </p>
+          {order.price && (
+            <p className="text-orange-400 text-[10px] font-black">
+              R$ {Number(order.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </p>
+          )}
+          {isSmartBudgetPending && (
+            <p className="text-[9px] font-black text-orange-400 uppercase tracking-widest mt-0.5">
+              Aguardando propostas de profissionais
+            </p>
+          )}
         </div>
-        <button 
-          type="button"
-          onClick={(e) => { 
-            e.preventDefault(); 
-            e.stopPropagation(); 
-            onDelete(order.id); 
-          }}
-          disabled={isDeleting}
-          className="relative z-30 p-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center min-w-[36px] min-h-[36px]"
-          title="Excluir pedido"
-        >
-          {isDeleting ? <Spinner size={14} /> : <Trash2 size={16} />}
-        </button>
+        <div className="flex items-center gap-2">
+          <div className={`px-2 py-1 rounded-lg text-[9px] font-bold ${STATUS_COLOR[order.status] ?? 'bg-white/5 text-gray-500'}`}>
+            {STATUS_LABEL[order.status] ?? order.status}
+          </div>
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(order.id); }}
+            disabled={isDeleting}
+            className="relative z-30 p-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center min-w-[36px] min-h-[36px]"
+            title="Excluir pedido"
+          >
+            {isDeleting ? <Spinner size={14} /> : <Trash2 size={16} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex gap-2 ml-2 flex-wrap">
+        {/* Advance status */}
+        {canAdvance && (
+          <button
+            onClick={() => nextStatus === 'completed' ? onComplete(order) : onAdvanceStatus(order.id, nextStatus)}
+            disabled={isAdvancing}
+            className={`text-[10px] font-black uppercase tracking-widest text-white px-4 py-2 rounded-xl transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center gap-2 ${
+              nextStatus === 'completed'
+                ? 'bg-green-500 shadow-green-500/20 hover:bg-green-600'
+                : 'bg-orange-500 shadow-orange-500/20 hover:bg-orange-600'
+            }`}
+          >
+            {isAdvancing ? <Spinner size={12} /> : <Check size={13} strokeWidth={3} />}
+            {isAdvancing ? 'Atualizando...' : nextLabel}
+          </button>
+        )}
+
+        {/* Rate (if completed and not yet rated) */}
+        {order.status === 'completed' && !alreadyRated && onComplete && (
+          <button
+            onClick={() => onComplete(order)}
+            className="text-[10px] font-black uppercase tracking-widest text-orange-400 bg-orange-500/10 border border-orange-500/20 px-4 py-2 rounded-xl hover:bg-orange-500/20 transition-all active:scale-95 flex items-center gap-2"
+          >
+            <Star size={13} fill="currentColor" />
+            Avaliar
+          </button>
+        )}
+
+        {/* Rebuy */}
+        {order.status === 'completed' && (
+          <button
+            onClick={() => onRebuy(order)}
+            className="text-[10px] font-black uppercase tracking-widest text-white bg-white/5 border border-white/5 px-4 py-2 rounded-xl hover:bg-white/10 transition-all active:scale-95 flex items-center gap-2"
+          >
+            <Zap size={13} />
+            Pedir Novamente
+          </button>
+        )}
+
+        {/* Cancel */}
+        {(order.status === 'pending' || order.status === 'confirmed' || order.status === 'in_progress' || order.status === 'scheduled') && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onCancel(order.id); }}
+            disabled={isCancelling}
+            className="text-[10px] font-bold text-gray-500 hover:text-red-400 px-3 py-2 rounded-xl hover:bg-red-500/10 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
+          >
+            {isCancelling ? <Spinner size={12} /> : <X size={13} />}
+            {isCancelling ? 'Cancelando...' : 'Cancelar'}
+          </button>
+        )}
       </div>
     </div>
-    <div className="flex gap-2 ml-2">
-      {order.status === 'completed' && (
-        <button 
-          onClick={() => onRebuy(order)}
-          className="text-[10px] font-black uppercase tracking-widest text-white bg-orange-500 px-4 py-2 rounded-xl hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20 active:scale-95 flex items-center gap-2"
-        >
-          <Zap size={14} />
-          Pedir Novamente
-        </button>
-      )}
-      {(order.status === 'pending' || order.status === 'in_progress' || order.status === 'scheduled') && (
-        <button 
-          onClick={(e) => {
-            e.stopPropagation();
-            onCancel(order.id);
-          }}
-          disabled={isCancelling}
-          className="text-[10px] font-bold text-white bg-red-600 px-4 py-2 rounded-xl hover:bg-red-700 transition-all shadow-lg shadow-red-600/20 active:scale-95 disabled:opacity-50 flex items-center gap-2"
-        >
-          {isCancelling ? <Spinner size={12} /> : null}
-          {isCancelling ? 'Cancelando...' : 'Cancelar Pedido'}
-        </button>
-      )}
-    </div>
-  </div>
-);
+  );
+};
 
 const InfiniteScrollTrigger = ({ onClick, loading, hasMore }: any) => {
   const ref = React.useRef<HTMLDivElement>(null);
@@ -229,40 +299,96 @@ const InfiniteScrollTrigger = ({ onClick, loading, hasMore }: any) => {
   );
 };
 
-const BottomNav = ({ activeTab, onTabChange, userRole }: { activeTab: string, onTabChange: (tab: string) => void, userRole?: string }) => (
-  <nav className="fixed bottom-0 left-0 right-0 w-full bg-[#070b13]/90 backdrop-blur-3xl border-t border-white/5 px-4 flex items-center justify-between z-[100] h-20 pb-[env(safe-area-inset-bottom,0px)] lg:hidden">
-    <button onClick={() => onTabChange('home')} className={`flex flex-col items-center justify-center gap-1.5 transition-all w-16 ${activeTab === 'home' ? 'text-orange-500' : 'text-gray-500'}`}>
-      <Compass size={22} strokeWidth={activeTab === 'home' ? 2.5 : 2} />
-      <span className="text-[9px] font-black uppercase tracking-widest">Explorar</span>
-    </button>
-    
-    <button onClick={() => onTabChange('orders')} className={`flex flex-col items-center justify-center gap-1.5 transition-all w-16 ${activeTab === 'orders' ? 'text-orange-500' : 'text-gray-500'}`}>
-      <ClipboardList size={22} strokeWidth={activeTab === 'orders' ? 2.5 : 2} />
-      <span className="text-[9px] font-black uppercase tracking-widest">Serviços</span>
-    </button>
+const BottomNav = ({ activeTab, onTabChange, userRole, onPublishService, onPublishProduct }: {
+  activeTab: string,
+  onTabChange: (tab: string) => void,
+  userRole?: string,
+  onPublishService?: () => void,
+  onPublishProduct?: () => void
+}) => {
+  const [showPublishMenu, setShowPublishMenu] = React.useState(false);
 
-    <div className="relative h-full flex items-center justify-center w-20">
-      <motion.button 
-        whileHover={{ scale: 1.1, y: -2 }}
-        whileTap={{ scale: 0.9 }}
-        onClick={() => onTabChange(userRole === 'pro' ? 'orders' : 'home')}
-        className="w-14 h-14 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center text-white shadow-[0_10px_30px_rgba(249,115,22,0.4)] border-4 border-[#070b13] z-10"
-      >
-        <Plus size={28} strokeWidth={3} />
-      </motion.button>
-    </div>
+  return (
+    <>
+      <AnimatePresence>
+        {showPublishMenu && (
+          <motion.div
+            key="publish-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[98] bg-black/60 backdrop-blur-sm lg:hidden"
+            onClick={() => setShowPublishMenu(false)}
+          />
+        )}
+      </AnimatePresence>
 
-    <button onClick={() => onTabChange('products')} className={`flex flex-col items-center justify-center gap-1.5 transition-all w-16 ${activeTab === 'products' ? 'text-orange-500' : 'text-gray-500'}`}>
-      <ShoppingBag size={22} strokeWidth={activeTab === 'products' ? 2.5 : 2} />
-      <span className="text-[9px] font-black uppercase tracking-widest">Produtos</span>
-    </button>
+      <AnimatePresence>
+        {showPublishMenu && (
+          <motion.div
+            key="publish-menu"
+            initial={{ opacity: 0, y: 16, scale: 0.92 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.92 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+            className="fixed bottom-[88px] left-1/2 -translate-x-1/2 z-[99] w-72 bg-[#121826] border border-white/10 rounded-3xl p-5 shadow-2xl lg:hidden"
+          >
+            <p className="text-gray-500 text-[9px] font-black uppercase tracking-[0.2em] text-center mb-4">O que deseja publicar?</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => { setShowPublishMenu(false); onPublishService?.(); }}
+                className="flex flex-col items-center gap-3 p-5 bg-orange-500/10 border border-orange-500/20 rounded-2xl text-orange-500 active:scale-95 transition-all"
+              >
+                <Briefcase size={26} />
+                <span className="text-[10px] font-black uppercase tracking-widest leading-tight text-center">Publicar Serviço</span>
+              </button>
+              <button
+                onClick={() => { setShowPublishMenu(false); onPublishProduct?.(); }}
+                className="flex flex-col items-center gap-3 p-5 bg-white/5 border border-white/10 rounded-2xl text-white active:scale-95 transition-all"
+              >
+                <Package size={26} />
+                <span className="text-[10px] font-black uppercase tracking-widest leading-tight text-center">Publicar Produto</span>
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-    <button onClick={() => onTabChange('profile')} className={`flex flex-col items-center justify-center gap-1.5 transition-all w-16 ${activeTab === 'profile' ? 'text-orange-500' : 'text-gray-500'}`}>
-      <User size={22} strokeWidth={activeTab === 'profile' ? 2.5 : 2} />
-      <span className="text-[9px] font-black uppercase tracking-widest">Perfil</span>
-    </button>
-  </nav>
-);
+      <nav className="fixed bottom-0 left-0 right-0 w-full bg-[#070b13]/90 backdrop-blur-3xl border-t border-white/5 px-4 flex items-center justify-between z-[100] h-20 pb-[env(safe-area-inset-bottom,0px)] lg:hidden">
+        <button onClick={() => onTabChange('home')} className={`flex flex-col items-center justify-center gap-1.5 transition-all w-16 ${activeTab === 'home' ? 'text-orange-500' : 'text-gray-500'}`}>
+          <Compass size={22} strokeWidth={activeTab === 'home' ? 2.5 : 2} />
+          <span className="text-[9px] font-black uppercase tracking-widest">Explorar</span>
+        </button>
+
+        <button onClick={() => onTabChange('orders')} className={`flex flex-col items-center justify-center gap-1.5 transition-all w-16 ${activeTab === 'orders' ? 'text-orange-500' : 'text-gray-500'}`}>
+          <ClipboardList size={22} strokeWidth={activeTab === 'orders' ? 2.5 : 2} />
+          <span className="text-[9px] font-black uppercase tracking-widest">Serviços</span>
+        </button>
+
+        <div className="relative h-full flex items-center justify-center w-20">
+          <motion.button
+            whileHover={{ scale: 1.1, y: -2 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setShowPublishMenu(prev => !prev)}
+            className={`w-14 h-14 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center text-white shadow-[0_10px_30px_rgba(249,115,22,0.4)] border-4 border-[#070b13] z-10 transition-transform duration-200 ${showPublishMenu ? 'rotate-45' : ''}`}
+          >
+            <Plus size={28} strokeWidth={3} />
+          </motion.button>
+        </div>
+
+        <button onClick={() => onTabChange('products')} className={`flex flex-col items-center justify-center gap-1.5 transition-all w-16 ${activeTab === 'products' ? 'text-orange-500' : 'text-gray-500'}`}>
+          <ShoppingBag size={22} strokeWidth={activeTab === 'products' ? 2.5 : 2} />
+          <span className="text-[9px] font-black uppercase tracking-widest">Produtos</span>
+        </button>
+
+        <button onClick={() => onTabChange('profile')} className={`flex flex-col items-center justify-center gap-1.5 transition-all w-16 ${activeTab === 'profile' ? 'text-orange-500' : 'text-gray-500'}`}>
+          <User size={22} strokeWidth={activeTab === 'profile' ? 2.5 : 2} />
+          <span className="text-[9px] font-black uppercase tracking-widest">Perfil</span>
+        </button>
+      </nav>
+    </>
+  );
+};
 
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -316,8 +442,9 @@ export default function App() {
   const [budgetPro, setBudgetPro] = useState<Professional | null>(null);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [activeChatName, setActiveChatName] = useState<string>('');
+  const [activeChatRecipientId, setActiveChatRecipientId] = useState<string>('');
   const [showNotifications, setShowNotifications] = useState(false);
-  const [isSignUpMode, setIsSignUpMode] = useState(false);
+  const [isSignUpMode, setIsSignUpMode] = useState(() => !!new URLSearchParams(window.location.search).get('ref') || !!sessionStorage.getItem('inviteRef'));
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [authName, setAuthName] = useState('');
@@ -330,6 +457,7 @@ export default function App() {
   const [showIntro, setShowIntro] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState<Record<string, boolean>>({});
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [cropModal, setCropModal] = useState<{ src: string; type: 'photo' | 'banner' } | null>(null);
   const [profileData, setProfileData] = useState<any>(null);
   const [editForm, setEditForm] = useState({
     name: '',
@@ -360,6 +488,8 @@ export default function App() {
   });
   const [orderViewTab, setOrderViewTab] = useState<'active' | 'history'>('active');
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  const showConfirm = (message: string, onConfirm: () => void) => setConfirmModal({ message, onConfirm });
   const [showFilters, setShowFilters] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [sortBy, setSortBy] = useState<'smart' | 'rating' | 'distance' | 'price' | 'responseTime'>('smart');
@@ -370,12 +500,25 @@ export default function App() {
   });
   const [searchViewMode, setSearchViewMode] = useState<'grid' | 'alphabetical'>('grid');
   const [searchTab, setSearchTab] = useState<'app' | 'map'>('app');
-  const [proDashboardTab, setProDashboardTab] = useState<'services' | 'products'>('services');
+  const [proDashboardTab, setProDashboardTab] = useState<'services' | 'products' | 'requests'>('services');
+  const [openBudgetRequests, setOpenBudgetRequests] = useState<any[]>([]);
+  const [loadingBudgetRequests, setLoadingBudgetRequests] = useState(false);
   const [publicProTab, setPublicProTab] = useState<'portfolio' | 'products'>('portfolio');
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [isSmartBudgetModalOpen, setIsSmartBudgetModalOpen] = useState(false);
+  const [completingOrder, setCompletingOrder] = useState<any>(null);
+  const [isPlansModalOpen, setIsPlansModalOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(true);
+  const [pendingInviteRef] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) sessionStorage.setItem('inviteRef', ref);
+    return ref || sessionStorage.getItem('inviteRef');
+  });
+  const [invitedPros, setInvitedPros] = useState<Professional[]>([]);
+  const [inviteLinkCopied, setInviteLinkCopied] = useState(false);
+  const [showActiveProsModal, setShowActiveProsModal] = useState(false);
 
   const [isProPlanActive, setIsProPlanActive] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -426,6 +569,16 @@ export default function App() {
     return unsub;
   }, [currentUser]);
 
+  // Invited pros listener
+  useEffect(() => {
+    if (!currentUser) { setInvitedPros([]); return; }
+    const q = query(collection(db, 'professionals'), where('invitedBy', '==', currentUser.uid));
+    const unsub = onSnapshot(q, (snap) => {
+      setInvitedPros(snap.docs.map(d => ({ id: d.id, ...d.data() } as Professional)));
+    }, console.error);
+    return unsub;
+  }, [currentUser]);
+
   // Awaiting Verification Listener
   useEffect(() => {
     if (!isAdmin) return;
@@ -461,10 +614,11 @@ export default function App() {
   // Admin: Real Users list
   useEffect(() => {
     if (!isAdmin) return;
-    const q = query(collection(db, 'users'), orderBy('name'), limit(200));
+    const q = query(collection(db, 'users'), limit(500));
     const unsub = onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map((d: any) => ({ id: d.id, ...d.data() }));
-      setAdminUsers(Array.from(new Map(items.map((u: any) => [u.id, u])).values()));
+      const sorted = items.sort((a: any, b: any) => (a.name || a.email || '').localeCompare(b.name || b.email || ''));
+      setAdminUsers(Array.from(new Map(sorted.map((u: any) => [u.id, u])).values()));
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'users');
     });
@@ -507,7 +661,20 @@ export default function App() {
   // Auth Listener
   useEffect(() => {
     let profileUnsub: () => void = () => {};
-    
+
+    // Captura resultado do signInWithRedirect (mobile Google login)
+    getRedirectResult(auth).catch((error: any) => {
+      const code = error?.code || '';
+      if (code && code !== 'auth/null-user') {
+        const msgs: Record<string, string> = {
+          'auth/popup-closed-by-user': 'Login cancelado.',
+          'auth/unauthorized-domain': 'Domínio não autorizado.',
+          'auth/account-exists-with-different-credential': 'E-mail já cadastrado com outro método.',
+        };
+        setAuthError(msgs[code] || 'Erro ao entrar com Google.');
+      }
+    });
+
     const authUnsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setCurrentUser(user);
@@ -536,18 +703,29 @@ export default function App() {
           await setDoc(userRef, newData);
         }
 
+        // Request push notification permission (silent if denied/unsupported)
+        setTimeout(() => requestPushPermission(), 3000);
+
         profileUnsub = onSnapshot(userRef, (snapshot) => {
           if (snapshot.exists()) {
             const data = snapshot.data();
             setProfileData(data);
-            
-            // Sync with currentProfessional if role updated
-            if (data.role === 'pro') {
+
+            // Sync with currentProfessional (pro ou admin podem ter perfil profissional)
+            if (data.role === 'pro' || data.role === 'admin' || user.email?.toLowerCase() === 'olucasalveszx@gmail.com') {
               onSnapshot(proRef, (proSnap) => {
                 if (proSnap.exists()) {
                   setCurrentProfessional({ id: proSnap.id, ...proSnap.data() } as Professional);
+                } else {
+                  setCurrentProfessional(null);
                 }
               });
+            }
+
+            // Auto-abre onboarding se veio por convite e ainda não é pro
+            const ref = sessionStorage.getItem('inviteRef');
+            if (ref && data.role === 'client') {
+              setIsProOnboardingOpen(true);
             }
           }
         }, (error) => {
@@ -618,18 +796,23 @@ export default function App() {
       return;
     }
 
+    const sortOrders = (items: Order[]) =>
+      items.sort((a: any, b: any) => {
+        const ta = a.date?.seconds ?? a.createdAt?.seconds ?? 0;
+        const tb = b.date?.seconds ?? b.createdAt?.seconds ?? 0;
+        return tb - ta;
+      });
+
     setLoadingOrders(true);
     const qClient = query(
-      collection(db, 'orders'), 
-      where('clientId', '==', currentUser.uid), 
-      orderBy('date', 'desc'), 
+      collection(db, 'orders'),
+      where('clientId', '==', currentUser.uid),
       limit(ordersLimit)
     );
     const unsubClient = onSnapshot(qClient, (snapshot) => {
       const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
-      // Remove duplicates by ID
       const unique = Array.from(new Map(items.map(o => [o.id, o])).values());
-      setOrders(unique);
+      setOrders(sortOrders(unique));
       setHasMoreOrders(snapshot.docs.length === ordersLimit);
       setLoadingOrders(false);
     }, (error) => {
@@ -639,16 +822,14 @@ export default function App() {
 
     setLoadingProOrders(true);
     const qPro = query(
-      collection(db, 'orders'), 
-      where('professionalId', '==', currentUser.uid), 
-      orderBy('date', 'desc'), 
+      collection(db, 'orders'),
+      where('professionalId', '==', currentUser.uid),
       limit(proOrdersLimit)
     );
     const unsubPro = onSnapshot(qPro, (snapshot) => {
       const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
-      // Remove duplicates by ID
       const unique = Array.from(new Map(items.map(o => [o.id, o])).values());
-      setProOrders(unique);
+      setProOrders(sortOrders(unique));
       setHasMoreProOrders(snapshot.docs.length === proOrdersLimit);
       setLoadingProOrders(false);
     }, (error) => {
@@ -690,15 +871,19 @@ export default function App() {
     return unsub;
   }, [productsLimit]);
 
+  const [proProductsLoading, setProProductsLoading] = useState(false);
+
   // Fetch active pro products when selected
   useEffect(() => {
-    if (selectedPro) {
-      const q = query(
-        collection(db, 'products'),
-        where('proId', '==', selectedPro.id),
-        where('status', '==', 'active')
-      );
-      getDocs(q).then(snap => {
+    if (!selectedPro) return;
+    setProProductsLoading(true);
+    const q = query(
+      collection(db, 'products'),
+      where('proId', '==', selectedPro.id),
+      where('status', '==', 'active')
+    );
+    getDocs(q)
+      .then(snap => {
         const proProducts = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
         setProducts(prev => {
           const combined = [...prev];
@@ -707,9 +892,35 @@ export default function App() {
           });
           return combined;
         });
-      }).catch(err => console.error("Error fetching pro products:", err));
-    }
-  }, [selectedPro]);
+      })
+      .catch(err => console.error('Error fetching pro products:', err))
+      .finally(() => setProProductsLoading(false));
+  }, [selectedPro?.id]);
+
+  // Open budget requests feed — reads from smartRequests (open collection, no index needed)
+  useEffect(() => {
+    if (!currentUser) return;
+    const ADMIN_EMAIL = 'olucasalveszx@gmail.com';
+    const adminBypass = currentUser.email?.toLowerCase() === ADMIN_EMAIL || isAdmin;
+    if (!adminBypass && (!currentProfessional || currentProfessional.professionalStatus !== 'active')) return;
+    setLoadingBudgetRequests(true);
+    const q = query(
+      collection(db, 'smartRequests'),
+      where('status', '==', 'pending'),
+      limit(50)
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      const items = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a: any, b: any) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
+      setOpenBudgetRequests(items);
+      setLoadingBudgetRequests(false);
+    }, (err) => {
+      console.error('Error fetching budget requests:', err);
+      setLoadingBudgetRequests(false);
+    });
+    return () => unsub();
+  }, [currentProfessional?.id, currentProfessional?.professionalStatus, isAdmin]);
 
   // Notifications Listener (Only messages)
   useEffect(() => {
@@ -814,17 +1025,13 @@ export default function App() {
 
   const filteredProducts = useMemo(() => {
     return productsWithDistance.filter(p => {
-      // Only show products from active professionals
-      const isProActive = professionals.some(pro => pro.id === p.proId);
-      if (!isProActive) return false;
-
-      const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            p.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            p.description.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = !selectedCategory || p.category === selectedCategory || p.name.includes(selectedCategory);
       return matchesSearch && matchesCategory;
     });
-  }, [productsWithDistance, searchTerm, selectedCategory, professionals]);
+  }, [productsWithDistance, searchTerm, selectedCategory]);
 
   const filteredPros = useMemo(() => {
     let result = professionalsWithDistance.filter(pro => {
@@ -916,7 +1123,7 @@ export default function App() {
     try {
       const userRef = doc(db, 'users', currentUser.uid);
       const skillsArray = editForm.skills.split(',').map(s => s.trim()).filter(s => s);
-      
+
       const updatedData: any = {
         name: editForm.name,
         whatsapp: editForm.whatsapp,
@@ -930,18 +1137,27 @@ export default function App() {
         availability: editForm.availability,
         instagram: editForm.instagram,
         website: editForm.website,
-        coordinates: editForm.coordinates,
         updatedAt: serverTimestamp()
       };
-      
-      await updateDoc(userRef, updatedData);
+      if (editForm.coordinates) updatedData.coordinates = editForm.coordinates;
+
+      console.log('[profile] step 1 — updating users/', currentUser.uid);
+      try {
+        await updateDoc(userRef, updatedData);
+        console.log('[profile] step 1 — OK');
+      } catch (e: any) {
+        const s = e?.message || e?.code || String(e);
+        console.error('[profile] step 1 FAILED:', s, e);
+        throw new Error(`[users] ${s}`);
+      }
 
       // If pro, update their professional record too
       if (profileData?.role === 'pro') {
-        const proRef = doc(db, 'professionals', currentUser.uid);
-        const proSnap = await getDoc(proRef);
-        if (proSnap.exists()) {
-          const proUpdate: any = { 
+        console.log('[profile] step 2 — updating professionals/', currentUser.uid);
+        try {
+          const proRef = doc(db, 'professionals', currentUser.uid);
+          const proUpdate: any = {
+            userId: currentUser.uid,
             name: editForm.name,
             whatsapp: editForm.whatsapp,
             description: editForm.bio,
@@ -954,22 +1170,38 @@ export default function App() {
             availability: editForm.availability,
             instagram: editForm.instagram,
             website: editForm.website,
-            coordinates: editForm.coordinates,
             updatedAt: serverTimestamp()
           };
-          await updateDoc(proRef, proUpdate);
+          await setDoc(proRef, proUpdate, { merge: true });
+          console.log('[profile] step 2 — OK');
+        } catch (e: any) {
+          const s = e?.message || e?.code || String(e);
+          console.error('[profile] step 2 FAILED:', s, e);
+          throw new Error(`[professionals] ${s}`);
         }
       }
 
-      await updateProfile(currentUser, { 
-        displayName: editForm.name,
-        photoURL: editForm.photoURL 
-      });
+      // Firebase Auth only accepts http/https URLs for photoURL — skip base64
+      console.log('[profile] step 3 — updating Firebase Auth displayName');
+      try {
+        const isUrl = editForm.photoURL?.startsWith('http');
+        await updateProfile(currentUser, {
+          displayName: editForm.name,
+          ...(isUrl ? { photoURL: editForm.photoURL } : {})
+        });
+        console.log('[profile] step 3 — OK');
+      } catch (e: any) {
+        const s = e?.message || e?.code || String(e);
+        console.error('[profile] step 3 FAILED:', s, e);
+        throw new Error(`[auth] ${s}`);
+      }
 
       setIsEditingProfile(false);
       alert('Perfil atualizado com sucesso!');
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `users/${currentUser.uid}`);
+    } catch (error: any) {
+      const msg = error?.message || error?.code || String(error) || 'Erro desconhecido';
+      console.error('[profile] CATCH — msg:', msg, 'full:', error);
+      alert(`Erro ao salvar: ${msg}`);
     } finally {
       setAuthLoading(false);
     }
@@ -977,31 +1209,39 @@ export default function App() {
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'photo' | 'banner' = 'photo') => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) { // Increased limit as we compress it anyway
-        alert('A imagem é muito grande. Escolha uma de até 5MB.');
-        return;
+    // Reset input so same file can be selected again
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert('A imagem é muito grande. Escolha uma de até 10MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      setCropModal({ src: base64, type });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCropConfirm = async (croppedBase64: string) => {
+    if (!cropModal) return;
+    const type = cropModal.type;
+    setCropModal(null);
+    try {
+      const maxW = type === 'banner' ? 1200 : 800;
+      const compressed = await compressImage(croppedBase64, maxW, 0.82);
+      if (type === 'banner') {
+        setEditForm(prev => ({ ...prev, bannerURL: compressed }));
+      } else {
+        setEditForm(prev => ({ ...prev, photoURL: compressed }));
       }
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const base64 = event.target?.result as string;
-        try {
-          const compressed = await compressImage(base64, 800, 0.6);
-          if (type === 'banner') {
-            setEditForm(prev => ({ ...prev, bannerURL: compressed }));
-          } else {
-            setEditForm(prev => ({ ...prev, photoURL: compressed }));
-          }
-        } catch (error) {
-          console.error('Error compressing image:', error);
-          if (type === 'banner') {
-            setEditForm(prev => ({ ...prev, bannerURL: base64 }));
-          } else {
-            setEditForm(prev => ({ ...prev, photoURL: base64 }));
-          }
-        }
-      };
-      reader.readAsDataURL(file);
+    } catch {
+      if (type === 'banner') {
+        setEditForm(prev => ({ ...prev, bannerURL: croppedBase64 }));
+      } else {
+        setEditForm(prev => ({ ...prev, photoURL: croppedBase64 }));
+      }
     }
   };
 
@@ -1141,6 +1381,29 @@ export default function App() {
     setOrderToDelete(orderId);
   };
 
+  const handleAdvanceStatus = async (orderId: string, newStatus: string) => {
+    setIsActionLoading(prev => ({ ...prev, [`advance_${orderId}`]: true }));
+    try {
+      await updateDoc(doc(db, 'orders', orderId), { status: newStatus, updatedAt: serverTimestamp() });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, 'orders');
+    } finally {
+      setIsActionLoading(prev => ({ ...prev, [`advance_${orderId}`]: false }));
+    }
+  };
+
+  const handleCompleteOrder = async (order: any) => {
+    setIsActionLoading(prev => ({ ...prev, [`advance_${order.id}`]: true }));
+    try {
+      await updateDoc(doc(db, 'orders', order.id), { status: 'completed', updatedAt: serverTimestamp() });
+      setCompletingOrder({ ...order, status: 'completed' });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, 'orders');
+    } finally {
+      setIsActionLoading(prev => ({ ...prev, [`advance_${order.id}`]: false }));
+    }
+  };
+
   const confirmDeleteOrder = async () => {
     if (!orderToDelete) return;
     
@@ -1166,6 +1429,41 @@ export default function App() {
   const handleRequestVerification = () => {
     if (!currentUser || profileData?.role !== 'pro') return;
     setIsVerificationModalOpen(true);
+  };
+
+  const handleSubscribePlan = async (plan: 'start' | 'pro' | 'ultra') => {
+    if (!currentUser) return;
+    const urls = {
+      start: import.meta.env.VITE_KIRVANO_START_URL || 'https://pay.kirvano.com/a9e4a8e1-a4c3-43de-933e-21cff8f3f8a3',
+      pro: import.meta.env.VITE_KIRVANO_CHECKOUT_URL || 'https://pay.kirvano.com/a9e4a8e1-a4c3-43de-933e-21cff8f3f8a3',
+      ultra: import.meta.env.VITE_KIRVANO_ULTRA_URL || 'https://pay.kirvano.com/a9e4a8e1-a4c3-43de-933e-21cff8f3f8a3',
+    };
+    try {
+      await setDoc(doc(db, 'professionals', currentUser.uid), {
+        id: currentUser.uid,
+        userId: currentUser.uid,
+        name: profileData?.name || currentUser.displayName || 'Profissional',
+        photoURL: profileData?.photoURL || currentUser.photoURL || '',
+        category: '',
+        description: '',
+        location: profileData?.location || 'Brasil',
+        whatsapp: profileData?.whatsapp || '',
+        rating: 5.0,
+        reviewCount: 0,
+        status: 'online',
+        professionalStatus: 'pending',
+        subscriptionStatus: 'pending_payment',
+        subscriptionType: plan === 'ultra' ? 'ultra' : plan === 'start' ? 'start' : 'monthly_pro',
+        serviceMode: 'none',
+        isQueueActive: false,
+        pricePerService: 0,
+        lastActiveAt: serverTimestamp(),
+      }, { merge: true });
+    } catch (err) {
+      console.error('Erro ao preparar perfil:', err);
+    }
+    setIsPlansModalOpen(false);
+    window.location.href = `${urls[plan]}?external_id=${currentUser.uid}&email=${encodeURIComponent(currentUser.email || '')}`;
   };
 
   const handleConfirmVerificationPayment = async () => {
@@ -1207,28 +1505,53 @@ export default function App() {
     }
   };
 
-  const handleRejectPro = async (proId: string) => {
+  const handleRejectPro = (proId: string) => {
     if (!isAdmin) return;
-    if (!confirm('Rejeitar este profissional?')) return;
-    try {
-      await callAdminAction('reject', proId);
-      alert('Profissional rejeitado.');
-    } catch (error: any) {
-      console.error(error);
-      alert('Erro ao rejeitar: ' + error.message);
-    }
+    showConfirm('Rejeitar este profissional?', async () => {
+      try {
+        await callAdminAction('reject', proId);
+        alert('Profissional rejeitado.');
+      } catch (error: any) {
+        console.error(error);
+        alert('Erro ao rejeitar: ' + error.message);
+      }
+    });
   };
 
-  const handleDeleteProRequest = async (proId: string) => {
+  const handleDeleteSmartRequest = (reqId: string) => {
+    showConfirm('Apagar esta solicitação permanentemente?', async () => {
+      try {
+        await deleteDoc(doc(db, 'smartRequests', reqId));
+      } catch (error: any) {
+        console.error(error);
+      }
+    });
+  };
+
+  const handleDeleteProRequest = (proId: string) => {
     if (!isAdmin) return;
-    if (!window.confirm('Tem certeza que deseja excluir esta solicitação permanentemente?')) return;
-    try {
-      await deleteDoc(doc(db, 'professionals', proId));
-      alert('Solicitação excluída com sucesso!');
-    } catch (error) {
-      console.error(error);
-      alert('Erro ao excluir solicitação.');
-    }
+    showConfirm('Tem certeza que deseja excluir esta solicitação permanentemente?', async () => {
+      try {
+        await callAdminAction('delete_pro', proId);
+        alert('Solicitação excluída com sucesso!');
+      } catch (error: any) {
+        console.error(error);
+        alert('Erro ao excluir solicitação: ' + error.message);
+      }
+    });
+  };
+
+  const handleDeleteUser = (userId: string, userName: string) => {
+    if (!isAdmin) return;
+    showConfirm(`Excluir a conta de "${userName}" permanentemente? Isso remove o usuário do Firestore e do Auth.`, async () => {
+      try {
+        await callAdminAction('delete_user', userId);
+        alert('Conta excluída com sucesso!');
+      } catch (error: any) {
+        console.error(error);
+        alert('Erro ao excluir conta: ' + error.message);
+      }
+    });
   };
 
   const handleUpdatePro = async (data: Partial<Professional>) => {
@@ -1245,24 +1568,104 @@ export default function App() {
 
   const openChat = async (pro: Professional) => {
     if (!currentUser) return;
-    const chatId = currentUser.uid < pro.userId ? `${currentUser.uid}_${pro.userId}` : `${pro.userId}_${currentUser.uid}`;
-    
+    const uid = currentUser.uid;
+    const proUid = pro.userId;
+    const chatId = uid < proUid ? `${uid}_${proUid}` : `${proUid}_${uid}`;
+
     try {
-      const chatRef = doc(db, 'chats', chatId);
-      const chatSnap = await getDoc(chatRef);
-      if (!chatSnap.exists()) {
-        await setDoc(chatRef, {
-          participants: [currentUser.uid, pro.userId],
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        });
-      }
+      await setDoc(doc(db, 'chats', chatId), {
+        participants: [uid, proUid],
+        participantNames: {
+          [uid]: profileData?.name || currentUser.displayName || 'Usuário',
+          [proUid]: pro.name,
+        },
+        participantPhotos: {
+          [uid]: profileData?.photoURL || currentUser.photoURL || '',
+          [proUid]: pro.photoURL || '',
+        },
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+
+      // Reset current user's unread on open
+      await updateDoc(doc(db, 'chats', chatId), {
+        [`unreadCounts.${uid}`]: 0,
+      });
     } catch (error) {
       console.error('Error creating chat:', error);
     }
-    
+
     setActiveChatId(chatId);
     setActiveChatName(pro.name);
+    setActiveChatRecipientId(proUid);
+    setActiveTab('chat');
+  };
+
+  const openProProfile = async (proId: string) => {
+    // Try local cache first (only contains active+subscribed pros)
+    const local = professionals.find(p => p.id === proId);
+    if (local) {
+      setSelectedPro(local);
+      return;
+    }
+    // Fallback: fetch directly from Firestore (covers sellers with any status)
+    try {
+      const snap = await getDoc(doc(db, 'professionals', proId));
+      if (snap.exists()) {
+        setSelectedPro({ id: snap.id, ...snap.data() } as Professional);
+      }
+    } catch (err) {
+      console.error('Erro ao buscar perfil do profissional:', err);
+    }
+  };
+
+  const handleRespondToRequest = async (request: any) => {
+    if (!currentUser) return;
+    const uid = currentUser.uid;
+    const clientId = request.clientId as string;
+    const clientName = request.clientName || 'Cliente';
+    const chatId = uid < clientId ? `${uid}_${clientId}` : `${clientId}_${uid}`;
+
+    try {
+      await setDoc(doc(db, 'chats', chatId), {
+        participants: [uid, clientId],
+        participantNames: {
+          [uid]: profileData?.name || currentUser.displayName || 'Profissional',
+          [clientId]: clientName,
+        },
+        participantPhotos: {
+          [uid]: profileData?.photoURL || currentUser.photoURL || '',
+          [clientId]: '',
+        },
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+
+      // Notify client that a pro is interested
+      await addDoc(collection(db, 'notifications'), {
+        userId: clientId,
+        title: 'Profissional Interessado!',
+        type: 'message',
+        message: `${profileData?.name || 'Um profissional'} quer conversar sobre sua solicitação de "${request.title}".`,
+        time: new Date().toISOString(),
+        read: false,
+        createdAt: serverTimestamp(),
+        senderId: uid,
+        senderName: profileData?.name || currentUser.displayName || 'Profissional',
+        chatId,
+      });
+
+      // Delete the smart request so it stops appearing to other pros
+      if (request.id) {
+        await deleteDoc(doc(db, 'smartRequests', request.id)).catch(() => {});
+      }
+    } catch (err) {
+      console.error('Error responding to request:', err);
+    }
+
+    setActiveChatId(chatId);
+    setActiveChatName(clientName);
+    setActiveChatRecipientId(clientId);
     setActiveTab('chat');
   };
 
@@ -1314,17 +1717,23 @@ export default function App() {
       if (isSignUpMode) {
         const userCredential = await createUserWithEmailAndPassword(auth, authEmail, authPassword);
         await updateProfile(userCredential.user, { displayName: authName });
-        await setDoc(doc(db, 'users', userCredential.user.uid), {
-          id: userCredential.user.uid,
-          name: authName,
-          email: authEmail,
-          photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(authName)}&background=f97316&color=fff`,
-          role: 'client',
-          whatsapp: authWhatsApp,
-          bio: 'Novo cliente Facilita Aí',
-          location: authLocation || 'Brasil',
-          createdAt: serverTimestamp()
-        });
+        // Force token refresh so Firestore security rules recognize the new user
+        await userCredential.user.getIdToken(true);
+        try {
+          await setDoc(doc(db, 'users', userCredential.user.uid), {
+            id: userCredential.user.uid,
+            name: authName,
+            email: authEmail,
+            photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(authName)}&background=f97316&color=fff`,
+            role: 'client',
+            whatsapp: authWhatsApp || '',
+            bio: 'Novo cliente Facilita Aí',
+            location: authLocation || 'Brasil',
+            createdAt: serverTimestamp()
+          });
+        } catch {
+          // Firestore write failed but user was created — profile will be set up on first load
+        }
       } else {
         await signInWithEmailAndPassword(auth, authEmail, authPassword);
       }
@@ -1338,6 +1747,7 @@ export default function App() {
         'auth/weak-password': 'Senha fraca. Use pelo menos 6 caracteres.',
         'auth/too-many-requests': 'Muitas tentativas. Aguarde alguns minutos.',
         'auth/invalid-credential': 'E-mail ou senha incorretos.',
+        'auth/network-request-failed': 'Sem conexão. Verifique sua internet e tente novamente.',
       };
       setAuthError(friendlyErrors[code] || 'Ocorreu um erro. Tente novamente.');
     } finally {
@@ -1361,18 +1771,25 @@ export default function App() {
             <div className="w-12 h-12 bg-orange-500 rounded-2xl flex items-center justify-center shadow-[0_0_25px_rgba(249,115,22,0.4)] mx-auto mb-5">
               <Hammer size={26} className="text-white transform -rotate-12" />
             </div>
-            <h1 className="text-4xl sm:text-5xl font-black uppercase tracking-tighter italic leading-none mb-2">
+            <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tighter italic leading-none mb-2">
               <span className="text-white">Facilita</span> <span className="text-orange-500">Aí</span>
             </h1>
-            <p className="text-gray-400 text-xs mb-5">
-              {isSignUpMode ? 'Crie sua conta gratuitamente.' : 'A plataforma que resolve seus problemas.'}
-            </p>
+            {pendingInviteRef ? (
+              <div className="mb-4 px-4 py-3 bg-orange-500/10 border border-orange-500/30 rounded-2xl text-left">
+                <p className="text-orange-400 text-[10px] font-black uppercase tracking-widest mb-0.5">Você foi convidado!</p>
+                <p className="text-white text-xs font-bold leading-snug">Crie sua conta e comece a atender <span className="text-orange-400">gratuitamente</span> na plataforma.</p>
+              </div>
+            ) : (
+              <p className="text-gray-400 text-xs mb-5">
+                {isSignUpMode ? 'Crie sua conta gratuitamente.' : 'A plataforma que resolve seus problemas.'}
+              </p>
+            )}
             <form onSubmit={handleEmailAuth} className="space-y-3 mb-4">
               {isSignUpMode && (
                 <>
                   <input type="text" required placeholder="Nome completo" value={authName} onChange={(e) => setAuthName(e.target.value)} className="w-full bg-[#070b13] border border-white/10 rounded-xl py-2.5 px-4 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-orange-500/50" />
                   <div className="grid grid-cols-2 gap-2">
-                    <input type="tel" required placeholder="WhatsApp" value={authWhatsApp} onChange={(e) => setAuthWhatsApp(e.target.value)} className="w-full bg-[#070b13] border border-white/10 rounded-xl py-2.5 px-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-orange-500/50" />
+                    <input type="tel" placeholder="WhatsApp (opcional)" value={authWhatsApp} onChange={(e) => setAuthWhatsApp(e.target.value)} className="w-full bg-[#070b13] border border-white/10 rounded-xl py-2.5 px-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-orange-500/50" />
                     <input type="text" required placeholder="Cidade" value={authLocation} onChange={(e) => setAuthLocation(e.target.value)} className="w-full bg-[#070b13] border border-white/10 rounded-xl py-2.5 px-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-orange-500/50" />
                   </div>
                 </>
@@ -1399,7 +1816,7 @@ export default function App() {
   return (
       <div className="min-h-screen bg-[#070b13] text-white flex overflow-x-hidden relative">
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} onBecomePro={() => setIsProModalOpen(true)} userRole={isAdmin ? 'admin' : profileData?.role} />
-      <main className="flex-grow flex flex-col min-w-0 pb-24 lg:pb-0">
+      <main className="flex-grow flex flex-col min-w-0 overflow-x-hidden pb-24 lg:pb-0">
         <header className="px-5 py-6 sm:px-8 lg:px-12 flex items-center justify-between sticky top-0 bg-[#070b13]/90 backdrop-blur-3xl z-[90] shrink-0">
           <div onClick={() => setActiveTab('home')} className="flex items-center gap-3 cursor-pointer group">
             <div className="w-11 h-11 rounded-[18px] flex items-center justify-center group-active:scale-95 transition-all shrink-0" style={{ background: 'linear-gradient(135deg, #1a0e00, #2d1600)', boxShadow: '0 10px 20px rgba(255,122,0,0.35)', border: '1px solid rgba(255,122,0,0.25)' }}>
@@ -1414,46 +1831,173 @@ export default function App() {
             <button onClick={() => setActiveTab('search')} className="w-11 h-11 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-gray-400 hover:text-white transition-all">
               <SearchIcon size={20} />
             </button>
-             <button onClick={() => setShowNotifications(!showNotifications)} className="w-11 h-11 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-gray-400 hover:text-white transition-all relative">
-              <Bell size={20} />
-              {notifications.some(n => !n.read) && (
-                <div className="absolute top-3 right-3 w-2 h-2 bg-orange-500 rounded-full border-2 border-[#070b13]" />
-              )}
-            </button>
-            <button onClick={() => setActiveTab('chat_list')} className="w-11 h-11 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-gray-400 hover:text-white transition-all">
-              <MessageSquare size={20} />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifications(p => !p)}
+                className={`w-11 h-11 rounded-2xl border flex items-center justify-center transition-all relative ${showNotifications ? 'bg-orange-500/15 border-orange-500/30 text-orange-500' : 'bg-white/5 border-white/5 text-gray-400 hover:text-white'}`}
+              >
+                <Bell size={20} />
+                {notifications.some(n => !n.read) && (
+                  <div className="absolute top-2.5 right-2.5 w-2 h-2 bg-orange-500 rounded-full border-2 border-[#070b13]" />
+                )}
+              </button>
+              {/* Notification dropdown */}
+              <AnimatePresence>
+                {showNotifications && (
+                  <>
+                    <motion.div
+                      className="fixed inset-0 z-[109]"
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      onClick={() => setShowNotifications(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                      transition={{ type: 'spring', damping: 22, stiffness: 320 }}
+                      className="absolute right-0 top-14 z-[110] w-80 rounded-3xl overflow-hidden shadow-2xl"
+                      style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.08)' }}
+                    >
+                      <div className="px-4 py-3 flex items-center justify-between border-b border-white/5">
+                        <p className="text-white font-black text-sm uppercase tracking-tight">Notificações</p>
+                        {notifications.some(n => !n.read) && (
+                          <button
+                            onClick={async () => {
+                              if (!currentUser) return;
+                              const unread = notifications.filter(n => !n.read);
+                              for (const n of unread) {
+                                updateDoc(doc(db, 'notifications', n.id), { read: true }).catch(() => {});
+                              }
+                            }}
+                            className="text-[9px] font-black uppercase tracking-widest text-orange-500 hover:text-orange-400"
+                          >
+                            Marcar todas lidas
+                          </button>
+                        )}
+                      </div>
+                      <div className="max-h-96 overflow-y-auto no-scrollbar">
+                        {notifications.length === 0 ? (
+                          <div className="py-12 text-center">
+                            <Bell size={28} className="mx-auto text-gray-700 mb-3" />
+                            <p className="text-gray-600 text-xs font-bold">Sem notificações</p>
+                          </div>
+                        ) : (
+                          notifications.slice(0, 15).map(n => {
+                            const isMsg = n.type === 'message';
+                            const chatId = n.chatId || ((isMsg && n.senderId && currentUser)
+                              ? (currentUser.uid < n.senderId ? `${currentUser.uid}_${n.senderId}` : `${n.senderId}_${currentUser.uid}`)
+                              : null);
+                            return (
+                              <motion.div
+                                key={n.id}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={async () => {
+                                  updateDoc(doc(db, 'notifications', n.id), { read: true }).catch(() => {});
+                                  if (isMsg && chatId) {
+                                    setActiveChatId(chatId);
+                                    setActiveChatName(n.senderName || n.title || 'Mensagem');
+                                    setActiveChatRecipientId(n.senderId || '');
+                                    setActiveTab('chat');
+                                    updateDoc(doc(db, 'chats', chatId), { [`unreadCounts.${currentUser?.uid}`]: 0 }).catch(() => {});
+                                  }
+                                  setShowNotifications(false);
+                                }}
+                                className={`flex items-start gap-3 px-4 py-3.5 cursor-pointer transition-colors border-b border-white/4 last:border-0 ${!n.read ? 'bg-orange-500/5 hover:bg-orange-500/8' : 'hover:bg-white/3'}`}
+                              >
+                                <div className={`w-9 h-9 rounded-[12px] flex items-center justify-center shrink-0 ${isMsg ? 'bg-orange-500/15' : 'bg-white/5'}`}>
+                                  {isMsg ? <MessageSquare size={15} className="text-orange-500" /> : <Bell size={15} className="text-gray-500" />}
+                                </div>
+                                <div className="flex-grow min-w-0">
+                                  <p className={`text-xs font-black leading-tight ${!n.read ? 'text-white' : 'text-gray-300'}`}>
+                                    {n.title || 'Notificação'}
+                                  </p>
+                                  <p className="text-[10px] text-gray-500 mt-0.5 line-clamp-2 leading-relaxed">{n.message || n.text}</p>
+                                  {isMsg && chatId && (
+                                    <p className="text-[9px] font-black text-orange-500 mt-1 uppercase tracking-widest">Toque para responder →</p>
+                                  )}
+                                </div>
+                                {!n.read && <div className="w-2 h-2 rounded-full bg-orange-500 shrink-0 mt-1" />}
+                              </motion.div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+            <div className="relative">
+              <button
+                onClick={() => { setActiveChatId(null); setActiveTab('chat_list'); }}
+                className={`w-11 h-11 rounded-2xl border flex items-center justify-center transition-all ${(activeTab === 'chat' || activeTab === 'chat_list') ? 'bg-orange-500/15 border-orange-500/30 text-orange-500' : 'bg-white/5 border-white/5 text-gray-400 hover:text-white'}`}
+              >
+                <MessageSquare size={20} />
+              </button>
+            </div>
           </div>
         </header>
+
+        {/* Toast notification */}
+        <AnimatePresence>
+          {activeToast && (
+            <motion.div
+              key="toast"
+              initial={{ opacity: 0, y: -16, scale: 0.94 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -16, scale: 0.94 }}
+              transition={{ type: 'spring', damping: 22, stiffness: 320 }}
+              className="fixed top-20 right-4 z-[120] max-w-[300px] rounded-2xl p-3 flex items-start gap-3 shadow-2xl cursor-pointer"
+              style={{ background: '#111827', border: '1px solid rgba(255,122,0,0.25)' }}
+              onClick={() => {
+                const chatId = activeToast.chatId || (activeToast.senderId && currentUser
+                  ? (currentUser.uid < activeToast.senderId ? `${currentUser.uid}_${activeToast.senderId}` : `${activeToast.senderId}_${currentUser.uid}`)
+                  : null);
+                if (chatId) {
+                  setActiveChatId(chatId);
+                  setActiveChatName(activeToast.senderName || activeToast.title || 'Mensagem');
+                  setActiveChatRecipientId(activeToast.senderId || '');
+                  setActiveTab('chat');
+                  updateDoc(doc(db, 'chats', chatId), { [`unreadCounts.${currentUser?.uid}`]: 0 }).catch(() => {});
+                }
+                setActiveToast(null);
+              }}
+            >
+              <div className="w-9 h-9 rounded-[12px] bg-orange-500/15 flex items-center justify-center shrink-0">
+                <MessageSquare size={16} className="text-orange-500" />
+              </div>
+              <div className="flex-grow min-w-0">
+                <p className="text-white text-xs font-black leading-tight">{activeToast.title || 'Nova Mensagem'}</p>
+                <p className="text-gray-400 text-[10px] mt-0.5 line-clamp-2">{activeToast.message || activeToast.text}</p>
+                <p className="text-[9px] font-black text-orange-500 mt-1 uppercase tracking-widest">Toque para responder →</p>
+              </div>
+              <button
+                onClick={e => { e.stopPropagation(); setActiveToast(null); }}
+                className="text-gray-600 hover:text-gray-300 transition-colors shrink-0"
+              >
+                <X size={14} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <AnimatePresence>
           {isProOnboardingOpen && profileData && (
             <ProfessionalOnboarding
               key="modal-pro-onboarding"
               user={profileData}
+              inviterCode={pendingInviteRef || undefined}
               onCancel={() => setIsProOnboardingOpen(false)}
               onComplete={async (pro) => {
                 if (!currentUser) return;
                 try {
-                  // Salva o perfil como pendente — só ativa após pagamento confirmado pela Kirvano
-                  const proRef = doc(db, 'professionals', currentUser.uid);
-                  await setDoc(proRef, {
-                    ...pro,
-                    id: currentUser.uid,
-                    userId: currentUser.uid,
-                    professionalStatus: 'pending',
-                    subscriptionStatus: 'pending_payment',
-                    subscriptionType: 'monthly_pro',
-                    lastActiveAt: serverTimestamp(),
-                  }, { merge: true });
-
                   setIsProOnboardingOpen(false);
-
-                  // Redireciona para checkout da Kirvano
-                  const baseUrl = import.meta.env.VITE_KIRVANO_CHECKOUT_URL || 'https://pay.kirvano.com/a9e4a8e1-a4c3-43de-933e-21cff8f3f8a3';
-                  window.location.href = `${baseUrl}?external_id=${currentUser.uid}&email=${encodeURIComponent(currentUser.email || '')}`;
+                  // Se veio por convite, o onboarding já salvou e ativou — só limpa o ref
+                  if (pendingInviteRef) {
+                    sessionStorage.removeItem('inviteRef');
+                  }
                 } catch (error) {
-                  console.error('Erro ao salvar perfil:', error);
+                  console.error('Erro ao finalizar onboarding:', error);
                 }
               }}
             />
@@ -1485,11 +2029,11 @@ export default function App() {
                 </p>
 
                 <div className="space-y-4">
-                  <button 
-                    onClick={() => { setIsPremiumModalOpen(false); setIsProOnboardingOpen(true); }}
+                  <button
+                    onClick={() => { setIsPremiumModalOpen(false); setIsPlansModalOpen(true); }}
                     className="w-full bg-orange-500 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-orange-500/20 hover:scale-[1.02] transition-all"
                   >
-                    🚀 Começar Agora
+                    🚀 Ver Planos
                   </button>
                   <button 
                     onClick={() => setIsPremiumModalOpen(false)}
@@ -1510,8 +2054,20 @@ export default function App() {
           )}
         </AnimatePresence>
 
+        <AnimatePresence>
+          {isPlansModalOpen && (
+            <PlansModal
+              key="modal-plans"
+              onClose={() => setIsPlansModalOpen(false)}
+              currentUser={currentUser}
+              profileData={profileData}
+              onSubscribe={handleSubscribePlan}
+            />
+          )}
+        </AnimatePresence>
+
         {activeTab === 'home' && (
-          <div className="space-y-0 pb-32 overflow-y-auto max-h-[calc(100vh-80px)] scroll-smooth no-scrollbar bg-[#070b13]">
+          <div className="space-y-0 pb-32 overflow-y-auto overflow-x-hidden max-h-[calc(100vh-80px)] scroll-smooth no-scrollbar bg-[#070b13]">
             {/* Top Info Section */}
             <section className="px-5 pt-4 pb-8">
               <div className="flex items-center justify-between mb-6">
@@ -1523,7 +2079,7 @@ export default function App() {
                 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => { setSearchTerm(''); setSelectedCategory(null); }}
+                    onClick={() => setShowActiveProsModal(true)}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 rounded-full border border-green-500/20 hover:bg-green-500/20 transition-all active:scale-95"
                   >
                     <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
@@ -1698,7 +2254,7 @@ export default function App() {
                       
                       return (
                         <div key={`home-prod-${product.id}`} className="min-w-[240px] sm:min-w-[280px]">
-                          <ProductCard 
+                          <ProductCard
                             product={product}
                             distance={distance}
                             onBuy={(p) => {
@@ -1706,10 +2262,8 @@ export default function App() {
                               const text = `Olá ${p.proName}, vi o produto [${p.name}] no Facilita Aí e tenho interesse em comprar.`;
                               window.open(`https://wa.me/55${whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
                             }}
-                            onClick={(p) => {
-                              const foundPro = professionals.find(pro => pro.id === p.proId);
-                              if (foundPro) setSelectedPro(foundPro);
-                            }}
+                            onClick={(p) => openProProfile(p.proId)}
+                            onViewSeller={(proId) => openProProfile(proId)}
                           />
                         </div>
                       );
@@ -1758,6 +2312,44 @@ export default function App() {
                  ))}
               </div>
             </section>
+
+            {/* Plans CTA — oculto para quem já é profissional */}
+            {!currentProfessional && profileData?.role !== 'pro' && !isAdmin && <section className="px-5 py-6">
+              <div className="relative rounded-[32px] overflow-hidden bg-[#0d121f] border border-orange-500/20 p-8 shadow-2xl shadow-orange-500/10">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-orange-500/20 to-transparent rounded-full -mr-16 -mt-16 blur-3xl" />
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/30">
+                      <Crown size={16} className="text-white" />
+                    </div>
+                    <span className="text-[10px] font-black text-orange-500 uppercase tracking-[0.2em]">Para Profissionais</span>
+                  </div>
+                  <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter leading-none mb-2">Torne-se Pro</h3>
+                  <p className="text-gray-400 text-xs font-bold mb-6 leading-relaxed">Apareça para centenas de clientes, gerencie sua agenda e venda no marketplace.</p>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setIsPlansModalOpen(true)}
+                      className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-orange-500/20 active:scale-95 transition-all"
+                    >
+                      Ver Planos
+                    </button>
+                    <div className="flex flex-col">
+                      <span className="text-white font-black text-sm">A partir de</span>
+                      <span className="text-orange-500 font-black text-lg tracking-tighter">R$ 14,90<span className="text-gray-500 text-xs font-bold">/mês</span></span>
+                    </div>
+                  </div>
+                </div>
+                <div className="absolute bottom-4 right-6 flex gap-1.5">
+                  {['Start', 'Pro', 'Ultra'].map((p, i) => (
+                    <span key={p} className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase border ${
+                      i === 0 ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
+                      i === 1 ? 'bg-orange-500/20 text-orange-400 border-orange-500/30' :
+                      'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                    }`}>{p}</span>
+                  ))}
+                </div>
+              </div>
+            </section>}
 
             {/* Testimonials */}
             <Testimonials />
@@ -1950,18 +2542,16 @@ export default function App() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => {
-                    const isPro = profileData?.role === 'pro';
-                    const hasActiveSub = currentProfessional?.subscriptionStatus === 'active';
+                    const isPro = isAdmin || profileData?.role === 'pro';
+                    const hasActiveSub = isAdmin || currentProfessional?.subscriptionStatus === 'active';
 
                     if (isPro && hasActiveSub) {
                       setActiveTab('pro_dashboard');
                       setProDashboardTab('products');
                     } else if (isPro && !hasActiveSub) {
-                       // Professional but expired, show dashboard to renew
                        setActiveTab('pro_dashboard');
                        setProDashboardTab('products');
                     } else {
-                      // Client or user without professional profile
                       setIsPremiumModalOpen(true);
                     }
                   }}
@@ -2022,12 +2612,15 @@ export default function App() {
                         transition={{ delay: idx * 0.05 }}
                         key={product.id}
                       >
-                        <ProductCard product={product} />
+                        <ProductCard
+                          product={product}
+                          onViewSeller={(proId) => openProProfile(proId)}
+                        />
                       </motion.div>
                     ));
                   })()}
                 </div>
-                
+
                 <InfiniteScrollTrigger 
                   onClick={() => setProductsLimit(prev => prev + PRODUCTS_PER_PAGE)}
                   loading={loadingProducts}
@@ -2046,22 +2639,32 @@ export default function App() {
 
         {activeTab === 'orders' && (
           <div className="px-4 sm:px-6 lg:px-12 py-6 sm:py-8 max-w-4xl mx-auto w-full">
-            <div className="flex items-center justify-between mb-6 sm:mb-8">
-              <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tighter">Meus Pedidos</h2>
-              <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5">
-                <button
-                  onClick={() => setOrderViewTab('active')}
-                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${orderViewTab === 'active' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
-                >
-                  Acompanhamento
-                </button>
-                <button
-                  onClick={() => setOrderViewTab('history')}
-                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${orderViewTab === 'history' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
-                >
-                  Histórico
-                </button>
+            <div className="flex flex-col gap-4 mb-6 sm:mb-8">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tighter">Meus Pedidos</h2>
+                <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5">
+                  <button
+                    onClick={() => setOrderViewTab('active')}
+                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${orderViewTab === 'active' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
+                  >
+                    Acompanhamento
+                  </button>
+                  <button
+                    onClick={() => setOrderViewTab('history')}
+                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${orderViewTab === 'history' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
+                  >
+                    Histórico
+                  </button>
+                </div>
               </div>
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={() => setIsSmartBudgetModalOpen(true)}
+                className="w-full flex items-center justify-center gap-3 py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-orange-500/20 active:scale-95 transition-all"
+              >
+                <Plus size={20} strokeWidth={3} />
+                Solicitar Novo Serviço
+              </motion.button>
             </div>
             
             <div className="bg-[#121826] rounded-3xl border border-white/5 p-4 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
@@ -2073,13 +2676,28 @@ export default function App() {
 
                 if (filteredOrders.length === 0) {
                   return (
-                    <div className="text-center py-20">
-                      <div className="w-20 h-20 bg-white/5 rounded-[32px] flex items-center justify-center mx-auto mb-6">
+                    <div className="text-center py-16 flex flex-col items-center gap-5">
+                      <div className="w-20 h-20 bg-white/5 rounded-[32px] flex items-center justify-center">
                         <ShoppingBag size={32} className="text-gray-700" />
                       </div>
-                      <p className="text-gray-500 font-bold uppercase text-[10px] tracking-[0.2em]">
-                        {orderViewTab === 'history' ? 'Nenhum histórico encontrado' : 'Sua lista está vazia'}
-                      </p>
+                      <div>
+                        <p className="text-white font-black uppercase text-sm tracking-tight mb-1">
+                          {orderViewTab === 'history' ? 'Nenhum histórico ainda' : 'Nenhum serviço em andamento'}
+                        </p>
+                        <p className="text-gray-600 text-[10px] font-bold uppercase tracking-[0.2em]">
+                          {orderViewTab === 'history' ? 'Seus serviços concluídos aparecerão aqui' : 'Solicite um serviço e acompanhe aqui'}
+                        </p>
+                      </div>
+                      {orderViewTab === 'active' && (
+                        <motion.button
+                          whileTap={{ scale: 0.96 }}
+                          onClick={() => setIsSmartBudgetModalOpen(true)}
+                          className="flex items-center gap-2 px-8 py-4 bg-orange-500 text-white rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-xl shadow-orange-500/20 active:scale-95 transition-all"
+                        >
+                          <Plus size={16} strokeWidth={3} />
+                          Solicitar Serviço Agora
+                        </motion.button>
+                      )}
                     </div>
                   );
                 }
@@ -2090,17 +2708,20 @@ export default function App() {
                       const uniqueOrders = Array.from(new Map(filteredOrders.map(o => [o.id, o])).values()) as Order[];
                       debugDuplicateKeys(uniqueOrders, (o) => o.id, "Meus Pedidos/Ordens");
                       return uniqueOrders.map((order, index) => (
-                        <OrderItem 
-                          key={order.id} 
-                          order={order} 
-                          onCancel={handleCancelOrder} 
+                        <OrderItem
+                          key={order.id}
+                          order={order}
+                          onCancel={handleCancelOrder}
                           onDelete={handleDeleteOrder}
+                          onAdvanceStatus={handleAdvanceStatus}
+                          onComplete={handleCompleteOrder}
                           isCancelling={isActionLoading[`order_${order.id}`]}
                           isDeleting={isActionLoading[`order_${order.id}`]}
+                          isAdvancing={isActionLoading[`advance_${order.id}`]}
                           onRebuy={(o: any) => {
                             const pro = professionals.find(p => p.id === o.professionalId);
                             if (pro) handleRequestBudget(pro);
-                          }} 
+                          }}
                         />
                       ));
                     })()}
@@ -2116,99 +2737,162 @@ export default function App() {
           </div>
         )}
 
-        {(activeTab === 'chat' || activeTab === 'chat_list') && (
+        {activeTab === 'chat_list' && (
           <div className="flex-grow p-4 lg:p-12 overflow-hidden h-[calc(100vh-140px)]">
-            {activeChatId ? (
-              <div className="h-full flex flex-col">
-                <button onClick={() => setActiveChatId(null)} className="mb-4 text-gray-400 text-xs font-bold uppercase tracking-widest">Voltar</button>
-                <div className="flex-grow bg-[#121826] rounded-3xl overflow-hidden border border-white/5"><ChatRoom chatId={activeChatId} recipientName={activeChatName} /></div>
+            <div className="h-full">
+              <ChatList
+                onSelectChat={(id, name, recipientId) => {
+                  setActiveChatId(id);
+                  setActiveChatName(name);
+                  setActiveChatRecipientId(recipientId);
+                  setActiveTab('chat');
+                  if (currentUser) {
+                    updateDoc(doc(db, 'chats', id), {
+                      [`unreadCounts.${currentUser.uid}`]: 0,
+                    }).catch(() => {});
+                  }
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'chat' && activeChatId && (
+          <div className="flex-grow p-4 lg:p-12 overflow-hidden h-[calc(100vh-140px)]">
+            <div className="h-full flex flex-col">
+              <button
+                onClick={() => { setActiveChatId(null); setActiveTab('chat_list'); }}
+                className="mb-3 flex items-center gap-1.5 text-gray-400 hover:text-white text-[10px] font-black uppercase tracking-widest transition-colors w-fit"
+              >
+                ← Voltar às mensagens
+              </button>
+              <div className="flex-grow overflow-hidden rounded-3xl">
+                <ChatRoom
+                  chatId={activeChatId}
+                  recipientName={activeChatName}
+                  recipientId={activeChatRecipientId}
+                  userRole={profileData?.role}
+                />
               </div>
-            ) : (
-              <div className="h-full flex flex-col">
-                <h3 className="text-2xl font-bold mb-6">Mensagens</h3>
-                <div className="flex-grow bg-[#121826] rounded-3xl overflow-hidden border border-white/5"><ChatList notifications={notifications} onSelectChat={(id, name) => { setActiveChatId(id); setActiveChatName(name); }} /></div>
-              </div>
-            )}
+            </div>
           </div>
         )}
 
         {activeTab === 'profile' && (
-          <div className="px-6 lg:px-12 py-8 max-w-4xl mx-auto w-full mb-32">
-            <div className="bg-[#121826] rounded-[40px] overflow-hidden border border-white/5">
-              <div 
-                className="h-48 bg-gradient-to-r from-orange-500 to-orange-600 relative group cursor-pointer"
-                onClick={() => isEditingProfile && document.getElementById('bannerIn')?.click()}
-              >
+          <div className="px-4 sm:px-6 lg:px-12 py-6 sm:py-8 max-w-4xl mx-auto w-full mb-32">
+            <div className="bg-[#121826] rounded-[40px] overflow-hidden border border-white/5 shadow-2xl">
+
+              {/* ── Banner ── */}
+              <div className="h-44 sm:h-56 relative overflow-hidden">
                 {(isEditingProfile ? editForm.bannerURL : profileData?.bannerURL) ? (
-                   <img src={isEditingProfile ? editForm.bannerURL : profileData.bannerURL} className="w-full h-full object-cover" />
-                ) : null}
-                {isEditingProfile && (
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Camera size={32} className="text-white" />
+                  <img src={isEditingProfile ? editForm.bannerURL : profileData?.bannerURL} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-orange-600 via-orange-500 to-amber-400 relative">
+                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+                    <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#121826]/60 to-transparent" />
                   </div>
                 )}
-                <input id="bannerIn" type="file" className="hidden" onChange={(e) => handleImageUpload(e, 'banner')} />
+                {isEditingProfile && (
+                  <label htmlFor="bannerIn" className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-2 cursor-pointer">
+                    <div className="bg-white/10 border border-white/20 rounded-2xl px-5 py-3 flex items-center gap-2 backdrop-blur-sm">
+                      <Camera size={20} className="text-white" />
+                      <span className="text-white text-[10px] font-black uppercase tracking-widest">Alterar Capa</span>
+                    </div>
+                  </label>
+                )}
+                <input id="bannerIn" type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'banner')} />
               </div>
-              <div className="px-8 pb-12">
-                <div className="relative -mt-16 flex flex-col md:flex-row items-end gap-6 mb-8">
-                  <div className="relative group cursor-pointer" onClick={() => (isEditingProfile || !profileData?.photoURL) && document.getElementById('fileIn')?.click()}>
-                    <img src={isEditingProfile ? editForm.photoURL : profileData?.photoURL} className="w-32 h-32 md:w-40 md:h-40 rounded-[32px] border-8 border-[#121826] object-cover bg-[#070b13]" />
+
+              {/* ── Foto + Info Header ── */}
+              <div className="px-5 sm:px-8 pb-8">
+                <div className="flex items-end gap-4 -mt-14 sm:-mt-16 mb-5">
+                  {/* Avatar */}
+                  <div className="relative shrink-0">
+                    <img
+                      src={isEditingProfile ? editForm.photoURL : profileData?.photoURL}
+                      className="w-28 h-28 sm:w-32 sm:h-32 rounded-[28px] border-4 border-[#121826] object-cover bg-[#070b13] shadow-xl"
+                    />
                     {isEditingProfile && (
-                      <div className="absolute inset-0 bg-black/40 rounded-[32px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Camera size={24} className="text-white" />
+                      <label htmlFor="fileIn" className="absolute inset-0 bg-black/50 rounded-[28px] flex items-center justify-center cursor-pointer">
+                        <Camera size={20} className="text-white" />
+                      </label>
+                    )}
+                    <input id="fileIn" type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'photo')} />
+                    {/* Online indicator */}
+                    {userCoords && <div className="absolute bottom-2 right-2 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-[#121826] shadow-md" />}
+                  </div>
+
+                  {/* Edit buttons — right side */}
+                  <div className="ml-auto pb-1">
+                    {!isEditingProfile ? (
+                      <button onClick={startEditing} className="bg-white/5 border border-white/10 text-white px-5 py-2.5 rounded-2xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all hover:border-orange-500/30">
+                        Editar Perfil
+                      </button>
+                    ) : (
+                      <div className="flex gap-2">
+                        <button onClick={() => setIsEditingProfile(false)} disabled={authLoading} className="bg-white/5 text-white px-4 py-2.5 rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-all disabled:opacity-50">Cancelar</button>
+                        <button onClick={handleUpdateProfile} disabled={authLoading} className="bg-orange-500 text-white px-5 py-2.5 rounded-2xl font-black uppercase text-[10px] shadow-xl shadow-orange-500/20 active:scale-95 transition-all flex items-center gap-1.5 disabled:opacity-50">
+                          {authLoading ? <Spinner size={12} /> : <Check size={12} strokeWidth={3} />}
+                          {authLoading ? 'Salvando...' : 'Salvar'}
+                        </button>
                       </div>
                     )}
-                    <input id="fileIn" type="file" className="hidden" onChange={(e) => handleImageUpload(e, 'photo')} />
                   </div>
-                  <div className="flex-grow pb-4">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h2 className="text-3xl font-black text-white uppercase tracking-tight">{profileData?.name}</h2>
-                      {(profileData?.role === 'admin' || isAdmin) && (
-                        <motion.span
-                          initial={{ scale: 0.8, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest overflow-hidden"
-                          style={{
-                            background: 'linear-gradient(135deg, #7c5200 0%, #FFD700 40%, #ffe566 60%, #b8860b 100%)',
-                            boxShadow: '0 0 16px rgba(255,215,0,0.5), 0 2px 8px rgba(0,0,0,0.4)',
-                            color: '#1a0e00',
-                          }}
-                        >
-                          <span className="absolute inset-0 opacity-30" style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%)', backgroundSize: '200% 100%', animation: 'shimmer 2.5s infinite' }} />
-                          <ShieldCheck size={11} strokeWidth={3} />
-                          ✦ Criador
-                        </motion.span>
-                      )}
-                      {(profileData?.isVerified || profileData?.role === 'admin' || isAdmin) && !(profileData?.role === 'admin' || isAdmin) && (
-                        <ShieldCheck size={22} style={{ color: '#3b82f6' }} />
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 mt-1">
-                      <p className="text-gray-500 text-sm font-medium flex items-center gap-1">
-                        <MapPin size={14} className="text-orange-500" />
-                        {profileData?.location || 'Localização não definida'}
-                      </p>
-                      {userCoords && (
-                        <span className="flex items-center gap-1 text-[10px] bg-green-500/10 text-green-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest">
-                          <Compass size={10} className="animate-pulse" /> Local Ativo
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                    <div className="pb-4">
-                      {!isEditingProfile ? (
-                        <button onClick={startEditing} className="bg-orange-500 text-white px-8 py-3 rounded-2xl font-black uppercase text-xs shadow-xl shadow-orange-500/20 active:scale-95 transition-all">Editar Perfil</button>
-                      ) : (
-                        <div className="flex gap-2">
-                          <button onClick={() => setIsEditingProfile(false)} disabled={authLoading} className="bg-white/5 text-white px-6 py-3 rounded-2xl font-black uppercase text-xs active:scale-95 transition-all disabled:opacity-50">Cancelar</button>
-                          <button onClick={handleUpdateProfile} disabled={authLoading} className="bg-green-500 text-white px-8 py-3 rounded-2xl font-black uppercase text-xs shadow-xl shadow-green-500/20 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50">
-                            {authLoading ? <Spinner size={12} /> : null}
-                            {authLoading ? 'Salvando...' : 'Salvar'}
-                          </button>
-                        </div>
-                      )}
-                    </div>
                 </div>
+
+                {/* Name + Badge */}
+                <div className="flex items-center gap-2 mb-1 flex-nowrap overflow-hidden">
+                  <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight truncate leading-none">
+                    {profileData?.name}
+                  </h2>
+                  {(profileData?.role === 'admin' || isAdmin) && (
+                    <motion.span
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="relative inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest overflow-hidden shrink-0"
+                      style={{
+                        background: 'linear-gradient(135deg, #7c5200 0%, #FFD700 40%, #ffe566 60%, #b8860b 100%)',
+                        boxShadow: '0 0 10px rgba(255,215,0,0.4)',
+                        color: '#1a0e00',
+                      }}
+                    >
+                      <span className="absolute inset-0 opacity-30" style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%)', backgroundSize: '200% 100%', animation: 'shimmer 2.5s infinite' }} />
+                      <ShieldCheck size={9} strokeWidth={3} className="relative z-10" />
+                      <span className="relative z-10">Criador</span>
+                    </motion.span>
+                  )}
+                  {profileData?.isVerified && !(profileData?.role === 'admin' || isAdmin) && (
+                    <ShieldCheck size={16} className="text-blue-500 shrink-0" />
+                  )}
+                </div>
+
+                {/* Location + Status */}
+                <div className="flex items-center gap-3 flex-wrap mb-5">
+                  <span className="flex items-center gap-1 text-gray-500 text-xs font-medium">
+                    <MapPin size={12} className="text-orange-500" />
+                    {profileData?.location || 'Sem localização'}
+                  </span>
+                  {userCoords && (
+                    <span className="flex items-center gap-1 text-[9px] bg-green-500/10 text-green-400 px-2.5 py-1 rounded-full font-black uppercase tracking-widest border border-green-500/20">
+                      <Compass size={9} className="animate-pulse" /> Local Ativo
+                    </span>
+                  )}
+                  {profileData?.role === 'pro' && (
+                    <span className="flex items-center gap-1 text-[9px] bg-orange-500/10 text-orange-400 px-2.5 py-1 rounded-full font-black uppercase tracking-widest border border-orange-500/20">
+                      <Briefcase size={9} /> Profissional
+                    </span>
+                  )}
+                </div>
+
+                {/* Bio */}
+                {profileData?.bio && !isEditingProfile && (
+                  <div className="mb-6 pl-4 border-l-2 border-orange-500/60">
+                    <p className="text-[10px] font-black text-orange-500/70 uppercase tracking-[0.2em] mb-1">Sobre mim</p>
+                    <p className="text-white text-sm font-bold leading-relaxed line-clamp-3">
+                      {profileData.bio}
+                    </p>
+                  </div>
+                )}
 
                 {isEditingProfile ? (
                   <form className="grid grid-cols-1 md:grid-cols-2 gap-6" onSubmit={(e) => e.preventDefault()}>
@@ -2259,13 +2943,7 @@ export default function App() {
                     </div>
                   </form>
                 ) : (
-                  <div className="space-y-8">
-                    {/* Bio Section */}
-                    <div className="bg-white/5 p-8 rounded-[32px] border border-white/5">
-                      <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Sobre Mim</h4>
-                      <p className="text-gray-300 leading-relaxed">{profileData?.bio || 'Nenhuma apresentação definida.'}</p>
-                    </div>
-
+                  <div className="space-y-6">
                     {/* Pro Specific Info */}
                     {profileData?.role === 'pro' && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
@@ -2359,7 +3037,7 @@ export default function App() {
                               <p className="text-xs text-gray-500 leading-relaxed max-w-md">
                                 {profileData.verificationStatus === 'pending'
                                   ? 'Sua solicitação está em análise. Em breve o selo será liberado!'
-                                  : 'Aumente sua visibilidade e transmita mais confiança para os clientes por apenas R$ 9,90.'}
+                                  : `Aumente sua visibilidade e transmita mais confiança para os clientes por apenas R$ ${VERIFICATION_BADGE_PRICE.toFixed(2).replace('.', ',')}.`}
                               </p>
                             </div>
                           </div>
@@ -2380,7 +3058,10 @@ export default function App() {
                       </div>
                     )}
                     {profileData?.role !== 'pro' && profileData?.role !== 'admin' && !isAdmin && (
-                      <button onClick={() => setIsProOnboardingOpen(true)} className="w-full bg-gradient-to-r from-orange-500 to-red-500 py-6 rounded-[32px] font-black uppercase text-sm shadow-2xl shadow-orange-500/20 active:scale-[0.98] transition-all">
+                      <button
+                        onClick={() => setIsPlansModalOpen(true)}
+                        className="w-full bg-gradient-to-r from-orange-500 to-red-500 py-6 rounded-[32px] font-black uppercase text-sm shadow-2xl shadow-orange-500/20 active:scale-[0.98] transition-all"
+                      >
                         🚀 Quero me tornar um Profissional
                       </button>
                     )}
@@ -2418,31 +3099,52 @@ export default function App() {
                           onClick={() => setIsProOnboardingOpen(true)}
                           className="w-full bg-red-500 py-4 rounded-2xl font-black uppercase text-xs text-white shadow-xl shadow-red-500/20 active:scale-95 transition-all"
                         >
-                          Renovar Assinatura (R$ 23,90)
+                          {`Renovar Assinatura (R$ ${PRO_PLAN_PRICE.toFixed(2).replace('.', ',')})`}
                         </button>
                       </div>
                     )}
                   </div>
                 )}
                 
-                {/* ── Área Pro: Serviços e Produtos ── */}
-                {(profileData?.role === 'pro' || profileData?.role === 'admin' || isAdmin) && currentProfessional?.professionalStatus === 'active' && (
+                {/* ── Área Pro: Serviços, Produtos e Solicitações ── */}
+                {(profileData?.role === 'pro' || profileData?.role === 'admin' || isAdmin) && (isAdmin || currentProfessional?.professionalStatus === 'active') && (
                   <div className="space-y-6 mt-4">
                     <div className="h-px bg-white/5" />
-                    <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/5 w-fit">
+                    <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/5 w-fit gap-1">
                       <button
                         onClick={() => setProDashboardTab('services')}
-                        className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${proDashboardTab === 'services' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
-                      >Meus Serviços</button>
+                        className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${proDashboardTab === 'services' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
+                      >Serviços</button>
                       <button
                         onClick={() => setProDashboardTab('products')}
-                        className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${proDashboardTab === 'products' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
-                      >Meus Produtos</button>
+                        className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${proDashboardTab === 'products' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
+                      >Produtos</button>
+                      <button
+                        onClick={() => setProDashboardTab('requests')}
+                        className={`relative px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${proDashboardTab === 'requests' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
+                      >
+                        Solicitações
+                        {openBudgetRequests.length > 0 && (
+                          <span className={`absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[8px] font-black flex items-center justify-center border border-[#0d121f] ${proDashboardTab === 'requests' ? 'bg-white text-orange-500' : 'bg-orange-500 text-white'}`}>
+                            {openBudgetRequests.length > 9 ? '9+' : openBudgetRequests.length}
+                          </span>
+                        )}
+                      </button>
                     </div>
-                    {proDashboardTab === 'services' ? (
-                      <ServiceManagement pro={currentProfessional} onUpdatePro={handleUpdatePro} />
-                    ) : (
+                    {proDashboardTab === 'services' && (
+                      <ServiceManagement pro={currentProfessional} onUpdatePro={handleUpdatePro} embedded />
+                    )}
+                    {proDashboardTab === 'products' && (
                       <ProductManagement professional={currentProfessional} onPublish={() => setActiveTab('products')} />
+                    )}
+                    {proDashboardTab === 'requests' && (
+                      <button
+                        onClick={() => setActiveTab('pro_dashboard')}
+                        className="w-full py-4 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-500 font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
+                      >
+                        <ClipboardList size={14} />
+                        Ver todas as solicitações ({openBudgetRequests.length})
+                      </button>
                     )}
                   </div>
                 )}
@@ -2456,6 +3158,68 @@ export default function App() {
                   >
                     <ShieldCheck size={14} /> Painel de Administração
                   </button>
+                )}
+
+                {/* ── Painel de Convites — exclusivo do criador ── */}
+                {currentUser && isAdmin && (
+                  <div className="mt-6 space-y-4">
+                    <div className="h-px bg-white/5" />
+                    <div className="space-y-3">
+                      <h4 className="text-[10px] font-black text-white/40 uppercase tracking-widest flex items-center gap-2">
+                        <Users size={12} className="text-orange-500" /> Indicações
+                      </h4>
+                      <div className="bg-white/5 rounded-3xl border border-white/5 p-5 space-y-3">
+                        <p className="text-xs text-gray-400 leading-relaxed">
+                          Convide profissionais pelo link abaixo. Quem se cadastrar pelo seu link ficará <span className="text-orange-400 font-black">ativo gratuitamente</span>.
+                        </p>
+                        <div className="flex gap-2">
+                          <div className="flex-1 bg-black/30 border border-white/10 rounded-2xl px-3 py-2.5 text-[10px] text-gray-400 font-mono truncate select-all">
+                            {`${window.location.origin}?ref=${currentUser.uid}`}
+                          </div>
+                          <motion.button
+                            whileTap={{ scale: 0.92 }}
+                            onClick={async () => {
+                              await navigator.clipboard.writeText(`${window.location.origin}?ref=${currentUser.uid}`);
+                              setInviteLinkCopied(true);
+                              setTimeout(() => setInviteLinkCopied(false), 2500);
+                            }}
+                            className={`shrink-0 px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${inviteLinkCopied ? 'bg-green-500 text-white' : 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'}`}
+                          >
+                            {inviteLinkCopied ? <Check size={14} /> : 'Copiar'}
+                          </motion.button>
+                        </div>
+                      </div>
+
+                      {invitedPros.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-black text-white/30 uppercase tracking-widest">{invitedPros.length} convidado{invitedPros.length > 1 ? 's' : ''}</p>
+                          {invitedPros.map(pro => (
+                            <div key={pro.id} className="flex items-center gap-3 bg-white/3 border border-white/5 rounded-2xl px-4 py-3">
+                              <img src={pro.photoURL} alt={pro.name} className="w-9 h-9 rounded-xl object-cover shrink-0" referrerPolicy="no-referrer" />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-white text-xs font-black truncate">{pro.name}</p>
+                                <p className="text-gray-500 text-[10px] font-bold">{pro.category}</p>
+                              </div>
+                              <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border ${
+                                pro.professionalStatus === 'active'
+                                  ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                                  : 'bg-orange-500/10 text-orange-400 border-orange-500/20'
+                              }`}>
+                                {pro.professionalStatus === 'active' ? 'Ativo' : 'Pendente'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {invitedPros.length === 0 && (
+                        <div className="py-6 text-center bg-white/2 rounded-2xl border border-dashed border-white/5">
+                          <Users size={24} className="mx-auto text-gray-700 mb-2" />
+                          <p className="text-gray-600 text-[10px] font-bold uppercase tracking-widest">Nenhum convidado ainda</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 )}
 
                 <button onClick={logout} className="mt-4 w-full py-5 bg-red-500/5 text-red-500 font-black uppercase tracking-[0.2em] text-[10px] rounded-2xl border border-red-500/10 hover:bg-red-500 hover:text-white transition-all">
@@ -2473,13 +3237,12 @@ export default function App() {
                <div className="flex gap-3 flex-wrap">
                   {/* Botão revogar Pros sem pagamento */}
                   <button
-                    onClick={async () => {
-                      if (!confirm('Revogar todos os Pros sem assinatura ativa paga? Esta ação não pode ser desfeita.')) return;
+                    onClick={() => showConfirm('Revogar todos os Pros sem assinatura ativa paga? Esta ação não pode ser desfeita.', async () => {
                       try {
                         const result = await callAdminAction('revoke_unpaid', '');
                         alert(`${result.count} conta(s) Pro sem assinatura paga foram desativadas.`);
                       } catch (e: any) { console.error(e); alert('Erro ao revogar: ' + e.message); }
-                    }}
+                    })}
                     className="bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl hover:bg-red-500/20 transition-all"
                   >
                     Revogar Pros sem pagamento
@@ -2518,16 +3281,11 @@ export default function App() {
                           </div>
                         </div>
                         <button 
-                          onClick={async () => {
-                            if (confirm('Deseja realmente remover este produto?')) {
-                              try {
-                                await deleteDoc(doc(db, 'products', p.id));
-                                alert('Produto removido com sucesso!');
-                              } catch (err) {
-                                console.error(err);
-                              }
-                            }
-                          }}
+                          onClick={() => showConfirm('Deseja realmente remover este produto?', async () => {
+                            try {
+                              await deleteDoc(doc(db, 'products', p.id));
+                            } catch (err) { console.error(err); }
+                          })}
                           className="p-2 text-gray-500 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
                         >
                           <Trash2 size={12} />
@@ -2645,16 +3403,54 @@ export default function App() {
                         </span>
                       </div>
                     </div>
-                    <button
-                      onClick={async () => {
-                        if (!window.confirm(`${u.blocked ? 'Desbloquear' : 'Bloquear'} ${u.name}?`)) return;
-                        try { await updateDoc(doc(db, 'users', u.id), { blocked: !u.blocked }); }
-                        catch (err) { console.error(err); }
-                      }}
-                      className={`shrink-0 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${u.blocked ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-white/5 text-gray-500 hover:text-white'}`}
-                    >
-                      {u.blocked ? 'Desbloquear' : 'Bloquear'}
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {u.role !== 'admin' && u.role !== 'pro' && (
+                        <button
+                          onClick={() => showConfirm(`Tornar ${u.name || u.email} um profissional?`, async () => {
+                            try {
+                              const tok = await currentUser?.getIdToken();
+                              await fetch('/api/admin-action', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ action: 'set_pro', proId: u.id }) });
+                            } catch (err) { console.error(err); }
+                          })}
+                          className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-all"
+                          title="Tornar profissional"
+                        >
+                          Pro
+                        </button>
+                      )}
+                      {u.role === 'pro' && (
+                        <button
+                          onClick={() => showConfirm(`Remover plano pro de ${u.name || u.email}?`, async () => {
+                            try {
+                              const tok = await currentUser?.getIdToken();
+                              await fetch('/api/admin-action', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ action: 'set_client', proId: u.id }) });
+                            } catch (err) { console.error(err); }
+                          })}
+                          className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 transition-all"
+                          title="Remover pro"
+                        >
+                          -Pro
+                        </button>
+                      )}
+                      <button
+                        onClick={() => showConfirm(`${u.blocked ? 'Desbloquear' : 'Bloquear'} ${u.name}?`, async () => {
+                          try { await updateDoc(doc(db, 'users', u.id), { blocked: !u.blocked }); }
+                          catch (err) { console.error(err); }
+                        })}
+                        className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${u.blocked ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-white/5 text-gray-500 hover:text-white'}`}
+                      >
+                        {u.blocked ? 'Desbloq.' : 'Bloquear'}
+                      </button>
+                      {u.role !== 'admin' && (
+                        <button
+                          onClick={() => handleDeleteUser(u.id, u.name || u.email)}
+                          className="p-1.5 rounded-xl text-[9px] bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-all"
+                          title="Excluir conta"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -2662,43 +3458,169 @@ export default function App() {
           </div>
         )}
 
-        {activeTab === 'pro_dashboard' && (profileData?.role === 'pro' || currentProfessional) && (
+        {activeTab === 'pro_dashboard' && (isAdmin || profileData?.role === 'pro' || currentProfessional) && (
           <div className="px-6 lg:px-12 py-8 max-w-6xl mx-auto w-full mb-32 space-y-12">
-            {!currentProfessional || currentProfessional.professionalStatus !== 'active' ? (
+            {(!isAdmin && (!currentProfessional || currentProfessional.professionalStatus !== 'active')) ? (
               <div className="bg-orange-500/10 border border-orange-500/20 p-12 rounded-[48px] text-center space-y-6">
                  <div className="w-20 h-20 bg-orange-500 rounded-3xl flex items-center justify-center text-white mx-auto shadow-2xl shadow-orange-500/40">
                     <Lock size={40} />
                  </div>
-                 <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Acesso Restrito</h2>
+                  <h2 className="text-2xl sm:text-4xl font-black text-white italic uppercase tracking-tighter">Acesso Restrito</h2>
                  <p className="text-gray-400 max-w-md mx-auto font-medium">Você precisa ativar sua assinatura profissional para liberar o painel completo, receber pedidos e aparecer no feed.</p>
-                 <button 
+                 <button
                   onClick={() => setIsProOnboardingOpen(true)}
                   className="bg-orange-500 text-white px-12 py-5 rounded-[24px] font-black uppercase text-sm tracking-widest shadow-2xl shadow-orange-500/30 hover:scale-105 active:scale-95 transition-all"
                  >
-                   Ativar Minha Conta (R$ 23,90)
+                   {`Ativar Minha Conta (R$ ${PRO_PLAN_PRICE.toFixed(2).replace('.', ',')})`}
                  </button>
               </div>
             ) : (
               <div className="space-y-8">
-                <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/5 w-fit">
+                {/* Tabs */}
+                <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/5 w-fit gap-1">
                   <button
                     onClick={() => setProDashboardTab('services')}
-                    className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${proDashboardTab === 'services' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
+                    className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${proDashboardTab === 'services' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
                   >
-                    Meus Serviços
+                    Serviços
                   </button>
                   <button
                     onClick={() => setProDashboardTab('products')}
-                    className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${proDashboardTab === 'products' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
+                    className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${proDashboardTab === 'products' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
                   >
-                    Meus Produtos
+                    Produtos
+                  </button>
+                  <button
+                    onClick={() => setProDashboardTab('requests')}
+                    className={`relative px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${proDashboardTab === 'requests' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
+                  >
+                    Solicitações
+                    {openBudgetRequests.length > 0 && (
+                      <span className={`absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[8px] font-black flex items-center justify-center border border-[#0d121f] ${proDashboardTab === 'requests' ? 'bg-white text-orange-500' : 'bg-orange-500 text-white'}`}>
+                        {openBudgetRequests.length > 9 ? '9+' : openBudgetRequests.length}
+                      </span>
+                    )}
                   </button>
                 </div>
 
-                {proDashboardTab === 'services' ? (
+                {proDashboardTab === 'services' && (
                   <ServiceManagement pro={currentProfessional} onUpdatePro={handleUpdatePro} />
-                ) : (
+                )}
+                {proDashboardTab === 'products' && (
                   <ProductManagement professional={currentProfessional} onPublish={() => setActiveTab('products')} />
+                )}
+                {proDashboardTab === 'requests' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-white font-black text-lg uppercase tracking-tight">Solicitações Abertas</h3>
+                        <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-0.5">Clientes buscando profissionais como você</p>
+                      </div>
+                      {openBudgetRequests.length > 0 && (
+                        <span className="px-3 py-1 bg-orange-500/20 text-orange-500 rounded-xl text-[9px] font-black uppercase border border-orange-500/20">
+                          {openBudgetRequests.length} abertas
+                        </span>
+                      )}
+                    </div>
+
+                    {loadingBudgetRequests ? (
+                      <div className="space-y-3">
+                        {[1,2,3].map(i => (
+                          <div key={i} className="h-28 bg-white/5 rounded-3xl animate-pulse border border-white/5" />
+                        ))}
+                      </div>
+                    ) : openBudgetRequests.length === 0 ? (
+                      <div className="py-16 text-center bg-white/2 rounded-3xl border border-dashed border-white/10">
+                        <ClipboardList size={40} className="mx-auto text-gray-700 mb-3" />
+                        <p className="text-gray-500 font-bold text-sm">Nenhuma solicitação aberta no momento.</p>
+                        <p className="text-gray-700 text-xs mt-1">Novas solicitações aparecerão aqui em tempo real.</p>
+                      </div>
+                    ) : (
+                      openBudgetRequests.map((req) => {
+                        const urgencyMap: Record<string, { label: string; color: string }> = {
+                          urgent: { label: 'Urgente', color: 'bg-red-500/20 text-red-400 border-red-500/20' },
+                          normal: { label: 'Normal', color: 'bg-gray-500/20 text-gray-400 border-gray-500/20' },
+                          scheduled: { label: 'Planejado', color: 'bg-blue-500/20 text-blue-400 border-blue-500/20' },
+                        };
+                        const urgency = urgencyMap[req.urgency] || urgencyMap.normal;
+                        const timeAgo = req.createdAt?.toDate ? (() => {
+                          const diff = Date.now() - req.createdAt.toDate().getTime();
+                          const mins = Math.floor(diff / 60000);
+                          if (mins < 60) return `${mins}min atrás`;
+                          const hrs = Math.floor(mins / 60);
+                          if (hrs < 24) return `${hrs}h atrás`;
+                          return `${Math.floor(hrs / 24)}d atrás`;
+                        })() : '';
+
+                        return (
+                          <motion.div
+                            key={req.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="bg-[#0d121f] border border-white/8 rounded-3xl p-5 space-y-3 hover:border-orange-500/20 transition-all"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0 flex-grow">
+                                <div className="flex items-center gap-2 flex-wrap mb-1">
+                                  <span className={`px-2 py-0.5 rounded-lg border text-[8px] font-black uppercase tracking-widest ${urgency.color}`}>
+                                    {urgency.label}
+                                  </span>
+                                  {req.category && (
+                                    <span className="px-2 py-0.5 rounded-lg bg-white/5 border border-white/10 text-[8px] font-black uppercase tracking-widest text-gray-400">
+                                      {req.category}
+                                    </span>
+                                  )}
+                                  <span className="text-[9px] text-gray-600 font-bold">{timeAgo}</span>
+                                </div>
+                                <h4 className="text-white font-black text-sm leading-tight">{req.title}</h4>
+                                {req.description && (
+                                  <p className="text-gray-500 text-xs mt-1 line-clamp-2 leading-relaxed">{req.description}</p>
+                                )}
+                              </div>
+                              {req.budget && (
+                                <div className="shrink-0 text-right">
+                                  <p className="text-[8px] text-gray-600 font-bold uppercase tracking-widest">Orçamento</p>
+                                  <p className="text-orange-500 font-black text-sm">R$ {req.budget}</p>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex items-center justify-between gap-3 pt-1 border-t border-white/5">
+                              <div className="flex items-center gap-3 min-w-0">
+                                {req.location && (
+                                  <span className="flex items-center gap-1 text-[9px] text-gray-500 font-bold truncate">
+                                    <MapPin size={10} className="text-orange-500 shrink-0" />
+                                    {req.location}
+                                  </span>
+                                )}
+                                <span className="text-[9px] text-gray-600 font-bold truncate">por {req.clientName || 'Cliente'}</span>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                {isAdmin && (
+                                  <motion.button
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => handleDeleteSmartRequest(req.id)}
+                                    className="p-2 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500/20 active:scale-95 transition-all"
+                                    title="Apagar solicitação"
+                                  >
+                                    <Trash2 size={13} />
+                                  </motion.button>
+                                )}
+                                <motion.button
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => handleRespondToRequest(req)}
+                                  className="flex items-center gap-1.5 px-4 py-2 bg-orange-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 active:scale-95 transition-all"
+                                >
+                                  <MessageSquare size={11} />
+                                  Responder
+                                </motion.button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })
+                    )}
+                  </div>
                 )}
               </div>
             )}
@@ -2779,11 +3701,7 @@ export default function App() {
                 </div>
                 <div className="p-6">
                   <button 
-                    onClick={() => {
-                      if (window.confirm('Tem certeza que deseja encerrar a sessão?')) {
-                        logout();
-                      }
-                    }} 
+                    onClick={() => showConfirm('Tem certeza que deseja encerrar a sessão?', logout)}
                     className="w-full py-4 text-red-500 font-bold bg-red-500/5 hover:bg-red-500/10 rounded-2xl transition-all"
                   >
                     Encerrar Sessão
@@ -2793,7 +3711,52 @@ export default function App() {
           </div>
         )}
       </main>
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} userRole={isAdmin ? 'admin' : profileData?.role} />
+      <BottomNav
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        userRole={isAdmin ? 'admin' : profileData?.role}
+        onPublishService={() => {
+          const isPro = profileData?.role === 'pro';
+          if (isPro) {
+            setActiveTab('pro_dashboard');
+            setProDashboardTab('services');
+          } else {
+            setIsSmartBudgetModalOpen(true);
+          }
+        }}
+        onPublishProduct={() => {
+          const isPro = profileData?.role === 'pro';
+          if (isPro) {
+            setActiveTab('pro_dashboard');
+            setProDashboardTab('products');
+          } else {
+            setIsPremiumModalOpen(true);
+          }
+        }}
+      />
+
+      {/* Confirm Modal */}
+      <AnimatePresence>
+        {confirmModal && (
+          <div key="modal-confirm" className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setConfirmModal(null)} className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+            <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="relative bg-[#121826] border border-white/10 rounded-[32px] w-full max-w-sm p-8 flex flex-col items-center text-center gap-6">
+              <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500">
+                <AlertTriangle size={28} />
+              </div>
+              <p className="text-white font-bold text-base leading-relaxed">{confirmModal.message}</p>
+              <div className="flex gap-3 w-full">
+                <button onClick={() => setConfirmModal(null)} className="flex-1 py-3 rounded-2xl bg-white/5 text-gray-400 font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all">
+                  Cancelar
+                </button>
+                <button onClick={() => { confirmModal.onConfirm(); setConfirmModal(null); }} className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-red-500/20 active:scale-95 transition-all">
+                  Confirmar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Modals and Overlays */}
       <AnimatePresence>
@@ -2802,7 +3765,7 @@ export default function App() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsProModalOpen(false)} className="absolute inset-0 bg-[#070b13]/90 backdrop-blur-xl" />
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 30 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 30 }} className="relative bg-[#121826] border border-white/10 rounded-[40px] w-full max-w-lg flex flex-col max-h-[90vh]">
               <div className="p-8 pb-4 shrink-0 flex justify-between items-start">
-                <div><h2 className="text-3xl font-black text-white uppercase italic">Seja Profissional</h2><p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-1">Sua jornada começa agora</p></div>
+                <div><h2 className="text-2xl sm:text-3xl font-black text-white uppercase italic">Seja Profissional</h2><p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-1">Sua jornada começa agora</p></div>
                 <button onClick={() => setIsProModalOpen(false)} className="bg-white/5 p-3 rounded-2xl text-gray-400 hover:text-white transition-all"><X size={20} /></button>
               </div>
               <div className="p-8 pt-4 overflow-y-auto no-scrollbar space-y-6">
@@ -2901,6 +3864,45 @@ export default function App() {
           </div>
         )}
 
+        {showActiveProsModal && (
+          <div className="fixed inset-0 z-[130] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowActiveProsModal(false)} className="absolute inset-0 bg-[#070b13]/90 backdrop-blur-md" />
+            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-lg bg-[#070b13] sm:rounded-[40px] sm:border sm:border-white/10 rounded-t-[40px] h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+              <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mt-4 shrink-0 sm:hidden" />
+              <div className="flex items-center justify-between px-6 py-5 shrink-0 border-b border-white/5">
+                <div>
+                  <h3 className="text-white font-black uppercase italic tracking-tighter text-lg">Ativos Agora</h3>
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">
+                    {professionals.filter(p => p.professionalStatus === 'active' && p.subscriptionStatus === 'active').length} profissional(is) ativo(s)
+                  </p>
+                </div>
+                <button onClick={() => setShowActiveProsModal(false)} className="w-10 h-10 bg-white/5 rounded-2xl flex items-center justify-center text-gray-500 hover:text-white transition-all"><X size={18} /></button>
+              </div>
+              <div className="overflow-y-auto no-scrollbar flex-grow p-4 space-y-3">
+                {professionals
+                  .filter(p => p.professionalStatus === 'active' && p.subscriptionStatus === 'active')
+                  .map(p => (
+                    <motion.div key={p.id} whileTap={{ scale: 0.98 }}
+                      onClick={() => { setShowActiveProsModal(false); setSelectedPro(p); }}
+                      className="flex items-center gap-3 bg-white/5 border border-white/5 rounded-2xl px-4 py-3 cursor-pointer hover:border-orange-500/30 transition-all">
+                      <img src={p.photoURL} alt={p.name} className="w-10 h-10 rounded-xl object-cover shrink-0" referrerPolicy="no-referrer" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-white text-sm font-black truncate">{p.name}</p>
+                        <p className="text-gray-500 text-[10px] font-bold">{p.category}</p>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                        <span className="text-[9px] text-green-400 font-black uppercase">Ativo</span>
+                      </div>
+                    </motion.div>
+                  ))
+                }
+              </div>
+            </motion.div>
+          </div>
+        )}
+
         {selectedPro && (
           <div key="modal-selected-pro" className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center p-0 sm:p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedPro(null)} className="absolute inset-0 bg-[#070b13]/90 backdrop-blur-md" />
@@ -2913,12 +3915,29 @@ export default function App() {
             >
               <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mt-4 shrink-0 sm:hidden" />
               <div className="relative h-64 shrink-0 mt-2 sm:mt-0">
-                <img src={selectedPro.photoURL} className="w-full h-full object-cover" alt={selectedPro.name} referrerPolicy="no-referrer" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#070b13] via-transparent to-transparent" />
-                <button onClick={() => setSelectedPro(null)} className="absolute top-4 right-4 bg-black/40 backdrop-blur-md p-3 rounded-2xl text-white"><X size={20} /></button>
-                <div className="absolute bottom-6 left-8 right-8 flex items-end justify-between">
-                  <div>
-                    <h2 className="text-3xl font-black text-white leading-none mb-1">{selectedPro.name}</h2>
+                {/* Banner or photo as background */}
+                <img
+                  src={selectedPro.bannerURL || selectedPro.photoURL}
+                  className="w-full h-full object-cover"
+                  alt={selectedPro.name}
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#070b13] via-[#070b13]/30 to-transparent" />
+                <button onClick={() => setSelectedPro(null)} className="absolute top-4 right-4 bg-black/50 backdrop-blur-md p-3 rounded-2xl text-white"><X size={20} /></button>
+                {/* Avatar over banner */}
+                {selectedPro.bannerURL && (
+                  <div className="absolute bottom-4 left-6">
+                    <img
+                      src={selectedPro.photoURL}
+                      alt={selectedPro.name}
+                      referrerPolicy="no-referrer"
+                      className="w-16 h-16 rounded-2xl object-cover border-2 border-orange-500 shadow-xl shadow-orange-500/20"
+                    />
+                  </div>
+                )}
+                <div className={`absolute bottom-6 right-8 flex items-end justify-between ${selectedPro.bannerURL ? 'left-28' : 'left-8'}`}>
+                  <div className="min-w-0">
+                    <h2 className="text-xl sm:text-3xl font-black text-white leading-none mb-1 truncate">{selectedPro.name}</h2>
                     <p className="text-orange-500 font-bold uppercase tracking-widest text-xs">{selectedPro.category}</p>
                   </div>
                   <motion.button 
@@ -2966,47 +3985,100 @@ export default function App() {
                  </div>
 
                  {publicProTab === 'portfolio' ? (
-                   <PortfolioGallery 
-                     proId={selectedPro.id} 
-                     proPhoto={selectedPro.photoURL} 
-                     proName={selectedPro.name} 
+                   <PortfolioGallery
+                     proId={selectedPro.id}
+                     proPhoto={selectedPro.photoURL}
+                     proName={selectedPro.name}
                    />
                  ) : (
                    <div className="space-y-4 pb-10">
-                     <h4 className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-4">Produtos Disponíveis</h4>
-                     <div className="grid grid-cols-1 gap-4">
-                       {products
-                         .filter(p => p.proId === selectedPro.id && p.status === 'active')
-                         .map((product, idx) => (
-                           <ProductCard key={product.id || `v16-pro-prod-${idx}`} product={product} />
+                     <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Produtos Disponíveis</p>
+                     {proProductsLoading ? (
+                       <div className="grid grid-cols-1 gap-3">
+                         {[1, 2, 3].map(i => (
+                           <div key={i} className="h-24 bg-white/5 rounded-3xl animate-pulse border border-white/5" />
                          ))}
-                       {products.filter(p => p.proId === selectedPro.id && p.status === 'active').length === 0 && (
+                       </div>
+                     ) : (() => {
+                       const proItems = products.filter(p => p.proId === selectedPro.id && p.status === 'active');
+                       return proItems.length === 0 ? (
                          <div className="py-12 text-center bg-white/2 rounded-3xl border border-dashed border-white/5">
                            <Package size={32} className="mx-auto text-gray-700 mb-2" />
-                           <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Nenhum produto cadastrado no momento.</p>
+                           <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Nenhum produto no momento.</p>
                          </div>
-                       )}
-                     </div>
+                       ) : (
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                           {proItems.map((product, idx) => (
+                             <ProductCard
+                               key={product.id || `pro-prod-${idx}`}
+                               product={product}
+                               onViewSeller={(proId) => openProProfile(proId)}
+                             />
+                           ))}
+                         </div>
+                       );
+                     })()}
                    </div>
                  )}
               </div>
 
-              <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#070b13] via-[#070b13] to-transparent pt-12 pb-[env(safe-area-inset-bottom,24px)] flex gap-3 backdrop-blur-md">
-                <motion.button 
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowBookingModal(true)} 
-                  disabled={isActionLoading.confirmBudget}
-                  className="flex-grow bg-white text-black h-14 rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-2xl flex items-center justify-center gap-2 active:bg-orange-500 active:text-white transition-all"
-                >
-                  Agendar / Fila
-                </motion.button>
-                <motion.button 
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => openChat(selectedPro)} 
-                  className="bg-white/10 h-14 w-14 rounded-2xl border border-white/10 text-white flex items-center justify-center shadow-xl"
-                >
-                  <MessageSquare size={22} />
-                </motion.button>
+              {/* Bottom Actions */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#070b13] via-[#070b13]/95 to-transparent pt-10 pb-[max(env(safe-area-inset-bottom,16px),16px)] px-5 backdrop-blur-sm">
+                <div className={`grid gap-2 ${
+                  selectedPro.serviceMode && selectedPro.serviceMode !== 'none'
+                    ? 'grid-cols-3'
+                    : 'grid-cols-2'
+                }`}>
+                  {/* WhatsApp / Solicitar */}
+                  {selectedPro.whatsapp && selectedPro.whatsappVisible ? (
+                    <motion.a
+                      whileTap={{ scale: 0.95 }}
+                      href={`https://wa.me/55${selectedPro.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${selectedPro.name}! Vi seu perfil no Facilita Aí e gostaria de solicitar um serviço.`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-col items-center justify-center gap-1 h-14 bg-[#25D366] rounded-2xl text-white shadow-lg shadow-[#25D366]/20 active:scale-95 transition-all"
+                    >
+                      <MessageCircle size={18} strokeWidth={2.5} />
+                      <span className="text-[8px] font-black uppercase tracking-wider">WhatsApp</span>
+                    </motion.a>
+                  ) : (
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => { setSelectedPro(null); setBudgetPro(selectedPro); setIsSmartBudgetModalOpen(true); }}
+                      className="flex flex-col items-center justify-center gap-1 h-14 bg-orange-500 rounded-2xl text-white shadow-lg shadow-orange-500/20 active:scale-95 transition-all"
+                    >
+                      <ClipboardList size={18} strokeWidth={2.5} />
+                      <span className="text-[8px] font-black uppercase tracking-wider">Solicitar</span>
+                    </motion.button>
+                  )}
+
+                  {/* Agendar / Fila — só aparece se o pro tem serviceMode ativo */}
+                  {selectedPro.serviceMode && selectedPro.serviceMode !== 'none' && (
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setShowBookingModal(true)}
+                      className="flex flex-col items-center justify-center gap-1 h-14 bg-white/10 border border-white/10 rounded-2xl text-white hover:bg-white/15 active:scale-95 transition-all"
+                    >
+                      {selectedPro.serviceMode === 'queue'
+                        ? <ListOrdered size={18} strokeWidth={2.5} />
+                        : <CalendarCheck size={18} strokeWidth={2.5} />
+                      }
+                      <span className="text-[8px] font-black uppercase tracking-wider">
+                        {selectedPro.serviceMode === 'queue' ? 'Fila' : selectedPro.serviceMode === 'both' ? 'Agendar/Fila' : 'Agendar'}
+                      </span>
+                    </motion.button>
+                  )}
+
+                  {/* Mensagem */}
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => { setSelectedPro(null); openChat(selectedPro); }}
+                    className="flex flex-col items-center justify-center gap-1 h-14 bg-white/10 border border-white/10 rounded-2xl text-white hover:bg-white/15 active:scale-95 transition-all"
+                  >
+                    <MessageSquare size={18} strokeWidth={2.5} />
+                    <span className="text-[8px] font-black uppercase tracking-wider">Mensagem</span>
+                  </motion.button>
+                </div>
               </div>
             </motion.div>
           </div>
@@ -3021,7 +4093,9 @@ export default function App() {
                exit={{ y: "100%", opacity: 0 }} 
                className="relative w-full max-w-lg bg-[#070b13] border-t sm:border border-white/10 rounded-t-[40px] sm:rounded-[40px] overflow-hidden shadow-2xl pb-[env(safe-area-inset-bottom,0px)] max-h-[95vh] overflow-y-auto no-scrollbar"
             >
-              <BookingSystem pro={selectedPro} user={profileData} onClose={() => setShowBookingModal(false)} />
+              <React.Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>}>
+                <BookingSystem pro={selectedPro} user={profileData} onClose={() => setShowBookingModal(false)} />
+              </React.Suspense>
             </motion.div>
           </div>
         )}
@@ -3215,7 +4289,7 @@ export default function App() {
                   <div className="flex flex-col gap-4">
                     <div className="flex items-baseline justify-center gap-1">
                       <span className="text-lg font-bold text-gray-500">R$</span>
-                      <span className="text-4xl font-black text-white">9,90</span>
+                      <span className="text-4xl font-black text-white">{VERIFICATION_BADGE_PRICE.toFixed(2).replace('.', ',')}</span>
                       <span className="text-sm font-bold text-gray-500">único</span>
                     </div>
 
@@ -3352,14 +4426,38 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        <SmartBudgetModal 
-          isOpen={isSmartBudgetModalOpen} 
-          onClose={() => setIsSmartBudgetModalOpen(false)} 
-        />
+        <React.Suspense fallback={null}>
+          <SmartBudgetModal
+            isOpen={isSmartBudgetModalOpen}
+            onClose={() => setIsSmartBudgetModalOpen(false)}
+            onTrackRequest={() => { setIsSmartBudgetModalOpen(false); setActiveTab('orders'); }}
+          />
+        </React.Suspense>
+
+        <AnimatePresence>
+          {completingOrder && (
+            <React.Suspense fallback={null}>
+              <CompletionModal
+                order={completingOrder}
+                userRole={profileData?.role}
+                onClose={() => setCompletingOrder(null)}
+              />
+            </React.Suspense>
+          )}
+        </AnimatePresence>
         
         {showOnboarding && (
-          <Onboarding 
-            onComplete={() => setShowOnboarding(false)} 
+          <Onboarding
+            onComplete={() => setShowOnboarding(false)}
+          />
+        )}
+
+        {cropModal && (
+          <ImageCropModal
+            imageSrc={cropModal.src}
+            aspect={cropModal.type === 'banner' ? 16 / 5 : 1}
+            onConfirm={handleCropConfirm}
+            onCancel={() => setCropModal(null)}
           />
         )}
 

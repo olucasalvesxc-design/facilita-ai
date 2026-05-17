@@ -28,7 +28,10 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return isSignedIn() && (
+        request.auth.token.email == 'olucasalveszx@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
     }
 
     // --- Admins Collection ---
@@ -40,34 +43,9 @@ service cloud.firestore {
     // --- Users Collection ---
     match /users/{userId} {
       allow read: if isSignedIn();
-      
-      allow create: if isOwner(userId) 
-                    && (!incoming().keys().hasAny(['isVerified']) || incoming().isVerified == false)
-                    && (incoming().role in ['client', 'pro'])
-                    && isValidUser(incoming());
-                    
-      allow update: if isOwner(userId) && (
-        // Allow updating everything except isVerified and role unless specific transition
-        (!incoming().diff(existing()).affectedKeys().hasAny(['isVerified', 'role'])) ||
-        // Allow transition from client to pro
-        (existing().role == 'client' && incoming().role == 'pro' && !incoming().diff(existing()).affectedKeys().hasAny(['isVerified'])) ||
-        isAdmin()
-      );
-      
-      function isValidUser(data) {
-        return data.name is string && data.name.size() <= 100
-            && data.role in ['client', 'pro', 'admin']
-            && (data.whatsapp == null || data.whatsapp is string)
-            && (data.bio == null || data.bio is string)
-            && (data.skills == null || data.skills is list)
-            && (data.experience == null || data.experience is string)
-            && (data.priceRange == null || data.priceRange is string)
-            && (data.bannerURL == null || data.bannerURL is string)
-            && (data.instagram == null || data.instagram is string)
-            && (data.website == null || data.website is string)
-            && (data.location == null || data.location is string)
-            && (data.photoURL == null || data.photoURL is string);
-      }
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
 
       match /likedPros/{proId} {
         allow get, list, create, update, delete: if isOwner(userId);
@@ -104,11 +82,12 @@ service cloud.firestore {
         !incoming().keys().hasAny(['isVerified']) || incoming().isVerified == false || isAdmin()
       );
       allow update: if isSignedIn() && (
-        (existing().userId == request.auth.uid && !incoming().diff(existing()).affectedKeys().hasAny(['isVerified'])) ||
-        (incoming().diff(existing()).affectedKeys().hasOnly(['likesCount'])) ||
+        proId == request.auth.uid ||
+        existing().userId == request.auth.uid ||
+        incoming().diff(existing()).affectedKeys().hasOnly(['likesCount']) ||
         isAdmin()
       );
-      allow delete: if isSignedIn() && (proId.startsWith('pro') || existing().userId == request.auth.uid || isAdmin());
+      allow delete: if isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
 
       // --- Queue Subcollection ---
       match /queue/{entryId} {
@@ -128,6 +107,12 @@ service cloud.firestore {
               && data.status in ['waiting', 'called', 'in_service', 'completed', 'cancelled']
               && data.position is number;
         }
+      }
+
+      // --- Catalog Subcollection (serviços do profissional) ---
+      match /catalog/{itemId} {
+        allow read, list: if true;
+        allow create, update, delete: if isSignedIn() && (proId == request.auth.uid || isAdmin());
       }
 
       // --- Portfolio Subcollection ---
@@ -153,14 +138,16 @@ service cloud.firestore {
     match /orders/{orderId} {
       // Identity-Based Read: Explicitly check resource.data to prevent blanket scans
       allow read: if isSignedIn() && (
-        resource.data.clientId == request.auth.uid || 
-        resource.data.professionalId == request.auth.uid
+        resource.data.clientId == request.auth.uid ||
+        resource.data.professionalId == request.auth.uid ||
+        (resource.data.type == 'smart_budget' && isProfessionalActive(request.auth.uid))
       );
-      
+
       // Strict Listing: Mandatory filters must be applied by client
       allow list: if isSignedIn() && (
-        resource.data.clientId == request.auth.uid || 
-        resource.data.professionalId == request.auth.uid
+        resource.data.clientId == request.auth.uid ||
+        resource.data.professionalId == request.auth.uid ||
+        (resource.data.type == 'smart_budget' && isProfessionalActive(request.auth.uid))
       );
 
       allow create: if isSignedIn() 
@@ -168,8 +155,9 @@ service cloud.firestore {
                     && isValidOrder(incoming());
                     
       allow update: if isSignedIn() && (
-        (existing().clientId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'description', 'updatedAt'])) ||
-        (existing().professionalId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
+        (existing().clientId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'description', 'updatedAt', 'rating'])) ||
+        (existing().professionalId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt', 'rating'])) ||
+        isAdmin()
       );
 
       // Allow deleting orders if user is involved (client or professional)
@@ -180,10 +168,10 @@ service cloud.firestore {
       );
 
       function isValidOrder(data) {
-        return data.clientId is string 
-            && (data.status in ['pending', 'scheduled', 'in_progress', 'completed', 'cancelled'])
+        return data.clientId is string
+            && (data.status in ['pending', 'confirmed', 'scheduled', 'in_progress', 'completed', 'cancelled'])
             && (
-              (data.keys().hasAny(['serviceTitle']) && data.serviceTitle is string) || 
+              (data.keys().hasAny(['serviceTitle']) && data.serviceTitle is string) ||
               (data.keys().hasAny(['title']) && data.title is string)
             );
       }
@@ -191,15 +179,19 @@ service cloud.firestore {
 
     // --- Chats Collection ---
     match /chats/{chatId} {
-      // On creation, we check if the user is one of the participants
-      allow read, create: if isSignedIn() && request.auth.uid in incoming().participants;
+      allow read, list: if isSignedIn() && request.auth.uid in resource.data.participants;
+      allow create: if isSignedIn() && request.auth.uid in incoming().participants;
       allow update: if isSignedIn() && request.auth.uid in existing().participants;
-      
+
       match /messages/{msgId} {
-        allow read: if isSignedIn() && get(/databases/$(database)/documents/chats/$(chatId)).data.participants.hasAll([request.auth.uid]);
-        allow create: if isSignedIn() 
+        allow read: if isSignedIn()
+                    && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+        allow create: if isSignedIn()
                       && incoming().senderId == request.auth.uid
-                      && get(/databases/$(database)/documents/chats/$(chatId)).data.participants.hasAll([request.auth.uid]);
+                      && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+        allow update: if isSignedIn()
+                      && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
+                      && incoming().diff(existing()).affectedKeys().hasOnly(['proposal']);
       }
     }
 
@@ -219,19 +211,31 @@ service cloud.firestore {
     }
 
     function isProfessionalActive(userId) {
-      // Check if pro exists and has active subscription
-      let pro = get(/databases/$(database)/documents/professionals/$(userId)).data;
-      return pro.subscriptionStatus == 'active' && 
-             (pro.subscriptionType in ['start', 'pro', 'ultra', 'monthly_pro', 'annual_pro']);
+      return exists(/databases/$(database)/documents/professionals/$(userId)) &&
+             get(/databases/$(database)/documents/professionals/$(userId)).data.subscriptionStatus == 'active' &&
+             (get(/databases/$(database)/documents/professionals/$(userId)).data.subscriptionType
+               in ['start', 'pro', 'ultra', 'monthly_pro', 'annual_pro']);
+    }
+
+    // --- Smart Requests Collection (broadcast budget requests) ---
+    match /smartRequests/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && incoming().clientId == request.auth.uid;
+      allow update: if false;
+      allow delete: if isSignedIn();
     }
 
     // --- Products Collection ---
     match /products/{productId} {
       allow read, list: if true;
-      allow create: if isSignedIn() && (incoming().proId == request.auth.uid || isAdmin()) 
-                    && isProfessionalActive(request.auth.uid);
-      allow update: if isSignedIn() && (existing().proId == request.auth.uid || isAdmin())
-                    && isProfessionalActive(request.auth.uid);
+      allow create: if isSignedIn() && (
+        isAdmin() ||
+        (incoming().proId == request.auth.uid && isProfessionalActive(request.auth.uid))
+      );
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        (existing().proId == request.auth.uid && isProfessionalActive(request.auth.uid))
+      );
       allow delete: if isSignedIn() && (existing().proId == request.auth.uid || isAdmin());
     }
   }

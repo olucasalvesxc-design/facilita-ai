@@ -77,6 +77,9 @@ export interface Professional {
   slotDuration?: number; // minutes
   appointmentInterval?: number; // minutes
   isQueueActive?: boolean;
+  isActive?: boolean;
+  onboardingCompleted?: boolean;
+  invitedBy?: string;
 }
 
 export interface Appointment {
@@ -130,6 +133,14 @@ export interface Message {
   content: string;
   timestamp: any; // Timestamp
   read: boolean;
+  type?: 'text' | 'budget_proposal';
+  proposal?: {
+    value: number;
+    deadline: string;
+    description: string;
+    status: 'pending' | 'accepted' | 'rejected';
+    orderId?: string;
+  };
 }
 
 export interface Chat {
@@ -157,6 +168,18 @@ export interface Comment {
   userName: string;
   userPhoto?: string;
   content: string;
+  createdAt: any;
+}
+
+export interface ServiceCatalogItem {
+  id: string;
+  proId: string;
+  title: string;
+  description?: string;
+  price: number;
+  duration?: number; // minutes
+  category?: string;
+  isActive: boolean;
   createdAt: any;
 }
 
