@@ -22,7 +22,7 @@ async function getMessagingInstance() {
 export async function requestPushPermission(): Promise<string | null> {
   try {
     if (!VAPID_KEY) return null;
-    if (!('Notification' in window)) return null;
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) return null;
 
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') return null;
@@ -30,9 +30,16 @@ export async function requestPushPermission(): Promise<string | null> {
     const messaging = await getMessagingInstance();
     if (!messaging) return null;
 
+    // Register firebase messaging SW explicitly if not already registered
+    let swReg = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
+    if (!swReg) {
+      swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' });
+      await navigator.serviceWorker.ready;
+    }
+
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY,
-      serviceWorkerRegistration: await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js'),
+      serviceWorkerRegistration: swReg,
     });
 
     if (token && auth.currentUser) {
@@ -41,7 +48,7 @@ export async function requestPushPermission(): Promise<string | null> {
 
     return token;
   } catch (err) {
-    // Push not supported or denied — silent fail
+    console.warn('[Push] requestPushPermission failed:', err);
     return null;
   }
 }
