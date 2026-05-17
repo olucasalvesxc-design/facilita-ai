@@ -457,7 +457,7 @@ export default function App() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authResetMessage, setAuthResetMessage] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
-  const [showIntro, setShowIntro] = useState(true);
+  const [showIntro, setShowIntro] = useState(() => !sessionStorage.getItem('intro_shown'));
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [showDemoTour, setShowDemoTour] = useState(false);
   const [showAuthPromptDemo, setShowAuthPromptDemo] = useState(false);
@@ -1810,7 +1810,7 @@ export default function App() {
     return (
       <>
         <AnimatePresence>
-          {showIntro && <IntroAnimation onComplete={() => setShowIntro(false)} />}
+          {showIntro && <IntroAnimation onComplete={() => { sessionStorage.setItem('intro_shown', '1'); setShowIntro(false); }} />}
         </AnimatePresence>
         <div className="min-h-screen bg-[#070b13] flex flex-col items-center justify-center px-4 py-8">
           <motion.div
@@ -3168,20 +3168,20 @@ export default function App() {
                 {(profileData?.role === 'pro' || profileData?.role === 'admin' || isAdmin) && (isAdmin || currentProfessional?.professionalStatus === 'active') && (
                   <div className="space-y-6 mt-4">
                     <div className="h-px bg-white/5" />
-                    <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/5 w-fit gap-1">
+                    <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/5 w-full gap-1">
                       <button
                         onClick={() => setProDashboardTab('services')}
-                        className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${proDashboardTab === 'services' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
+                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${proDashboardTab === 'services' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
                       >Serviços</button>
                       <button
                         onClick={() => setProDashboardTab('products')}
-                        className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${proDashboardTab === 'products' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
+                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${proDashboardTab === 'products' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
                       >Produtos</button>
                       <button
                         onClick={() => setProDashboardTab('requests')}
-                        className={`relative px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${proDashboardTab === 'requests' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
+                        className={`relative flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${proDashboardTab === 'requests' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
                       >
-                        Solicitações
+                        Pedidos
                         {openBudgetRequests.length > 0 && (
                           <span className={`absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[8px] font-black flex items-center justify-center border border-[#0d121f] ${proDashboardTab === 'requests' ? 'bg-white text-orange-500' : 'bg-orange-500 text-white'}`}>
                             {openBudgetRequests.length > 9 ? '9+' : openBudgetRequests.length}
@@ -3535,24 +3535,24 @@ export default function App() {
             ) : (
               <div className="space-y-8">
                 {/* Tabs */}
-                <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/5 w-fit gap-1">
+                <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/5 w-full gap-1">
                   <button
                     onClick={() => setProDashboardTab('services')}
-                    className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${proDashboardTab === 'services' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
+                    className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${proDashboardTab === 'services' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
                   >
                     Serviços
                   </button>
                   <button
                     onClick={() => setProDashboardTab('products')}
-                    className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${proDashboardTab === 'products' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
+                    className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${proDashboardTab === 'products' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
                   >
                     Produtos
                   </button>
                   <button
                     onClick={() => setProDashboardTab('requests')}
-                    className={`relative px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${proDashboardTab === 'requests' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
+                    className={`relative flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${proDashboardTab === 'requests' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-gray-500 hover:text-white'}`}
                   >
-                    Solicitações
+                    Pedidos
                     {openBudgetRequests.length > 0 && (
                       <span className={`absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[8px] font-black flex items-center justify-center border border-[#0d121f] ${proDashboardTab === 'requests' ? 'bg-white text-orange-500' : 'bg-orange-500 text-white'}`}>
                         {openBudgetRequests.length > 9 ? '9+' : openBudgetRequests.length}
@@ -4549,6 +4549,11 @@ export default function App() {
               </motion.button>
           )}
         </AnimatePresence>
+      </AnimatePresence>
+
+      {/* Intro Animation — shows once per session for logged-in users */}
+      <AnimatePresence>
+        {showIntro && <IntroAnimation onComplete={() => { sessionStorage.setItem('intro_shown', '1'); setShowIntro(false); }} />}
       </AnimatePresence>
 
       {/* Demo Mode Overlays */}
