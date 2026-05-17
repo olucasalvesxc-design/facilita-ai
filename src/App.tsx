@@ -1807,12 +1807,15 @@ export default function App() {
     }
   };
 
+  if (showIntro) {
+    return (
+      <IntroAnimation onComplete={() => { sessionStorage.setItem('intro_shown', '1'); setShowIntro(false); }} />
+    );
+  }
+
   if (!currentUser && !isDemoMode) {
     return (
       <>
-        <AnimatePresence>
-          {showIntro && <IntroAnimation onComplete={() => { sessionStorage.setItem('intro_shown', '1'); setShowIntro(false); }} />}
-        </AnimatePresence>
         <div className="min-h-screen bg-[#070b13] flex flex-col items-center justify-center px-4 py-8">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
@@ -4590,11 +4593,6 @@ export default function App() {
               </motion.button>
           )}
         </AnimatePresence>
-      </AnimatePresence>
-
-      {/* Intro Animation — shows once per session for logged-in users */}
-      <AnimatePresence>
-        {showIntro && <IntroAnimation onComplete={() => { sessionStorage.setItem('intro_shown', '1'); setShowIntro(false); }} />}
       </AnimatePresence>
 
       {/* Demo Mode Overlays */}
