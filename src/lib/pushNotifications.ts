@@ -1,4 +1,4 @@
-import { getMessaging, getToken, deleteToken, isSupported } from 'firebase/messaging';
+import { getMessaging, getToken, isSupported } from 'firebase/messaging';
 import { doc, updateDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
 
@@ -17,18 +17,25 @@ async function getMessagingInstance() {
   return messagingInstance;
 }
 
-async function waitForSWActivation(reg: ServiceWorkerRegistration): Promise<void> {
-  if (reg.active) return;
+// Wait for an INSTALLING or WAITING SW to become active.
+// If no update is pending, returns immediately (existing active SW is used).
+async function waitForNewSWActivation(reg: ServiceWorkerRegistration): Promise<void> {
   const sw = reg.installing || reg.waiting;
   if (!sw) return;
-  return new Promise(resolve => {
-    sw.addEventListener('statechange', function handler() {
-      if (sw.state === 'activated') {
-        sw.removeEventListener('statechange', handler);
-        resolve();
-      }
-    });
-  });
+  return Promise.race([
+    new Promise<void>(resolve => {
+      sw.addEventListener('statechange', function handler() {
+        if (sw.state === 'activated') {
+          sw.removeEventListener('statechange', handler);
+          resolve();
+        }
+      });
+    }),
+    // Safety timeout — if SW never activates, don't hang forever
+    new Promise<void>((_, reject) =>
+      setTimeout(() => reject(new Error('SW activation timeout')), 8000)
+    ),
+  ]);
 }
 
 export async function requestPushPermission(): Promise<string | null> {
@@ -42,12 +49,13 @@ export async function requestPushPermission(): Promise<string | null> {
     const messaging = await getMessagingInstance();
     if (!messaging) return null;
 
-    // Register sw.js (which now includes Firebase Messaging) and wait for activation
+    // Register/update sw.js (FCM-capable) and wait for the new version to activate
     const swReg = await navigator.serviceWorker.register('/sw.js');
-    await waitForSWActivation(swReg);
+    await waitForNewSWActivation(swReg);
 
-    // Delete old invalid token before getting a fresh one
-    try { await deleteToken(messaging); } catch { /* ignore */ }
+    // Clear any stale push subscription so getToken creates a fresh FCM one
+    const oldSub = await swReg.pushManager.getSubscription();
+    if (oldSub) await oldSub.unsubscribe().catch(() => {});
 
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY,
