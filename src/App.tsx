@@ -3758,8 +3758,31 @@ export default function App() {
                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${profileData?.whatsappVisible ? 'right-1' : 'left-1'}`} />
                   </div>
                 </div>
+                <div className="p-6 border-b border-white/5">
+                  <button
+                    onClick={async () => {
+                      const token = await requestPushPermission();
+                      if (token) {
+                        setActiveToast({ title: '🔔 Notificações ativadas!', message: 'Você receberá alertas de novas mensagens.' } as any);
+                      } else {
+                        const perm = 'Notification' in window ? Notification.permission : 'unsupported';
+                        if (perm === 'denied') {
+                          alert('Notificações bloqueadas. Vá em Configurações do navegador → Notificações → facilitai.online → Permitir.');
+                        } else if (perm === 'unsupported') {
+                          alert('Seu navegador não suporta notificações push.');
+                        } else {
+                          alert('Não foi possível ativar. Tente novamente.');
+                        }
+                      }
+                    }}
+                    className="w-full py-4 text-orange-500 font-bold bg-orange-500/5 hover:bg-orange-500/10 rounded-2xl transition-all flex items-center justify-center gap-2"
+                  >
+                    <Bell size={18} />
+                    {'Notification' in window && Notification.permission === 'granted' ? 'Notificações Push Ativas ✓' : 'Ativar Notificações Push'}
+                  </button>
+                </div>
                 <div className="p-6">
-                  <button 
+                  <button
                     onClick={() => showConfirm('Tem certeza que deseja encerrar a sessão?', logout)}
                     className="w-full py-4 text-red-500 font-bold bg-red-500/5 hover:bg-red-500/10 rounded-2xl transition-all"
                   >
