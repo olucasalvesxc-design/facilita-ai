@@ -968,9 +968,8 @@ export default function App() {
     const q = query(
       collection(db, 'notifications'),
       where('userId', '==', currentUser.uid),
-      where('type', '==', 'message'),
       orderBy('createdAt', 'desc'),
-      limit(20)
+      limit(30)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -979,8 +978,10 @@ export default function App() {
         ...doc.data()
       }) as any);
 
-      // Remove duplicates by ID
-      const uniqueNotifs = Array.from(new Map(notifs.map(n => [n.id, n])).values());
+      // Filter messages client-side to avoid composite index requirement
+      const uniqueNotifs = Array.from(new Map(
+        notifs.filter((n: any) => n.type === 'message').map((n: any) => [n.id, n])
+      ).values());
 
       const newNotifs = uniqueNotifs.filter((n: any) => !n.read && !prevNotifsRef.current.find(prev => prev.id === n.id));
       if (newNotifs.length > 0 && activeTab !== 'chat') {
