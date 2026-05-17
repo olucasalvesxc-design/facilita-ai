@@ -1,167 +1,184 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Smartphone, 
-  Zap, 
-  Target, 
-  ListOrdered, 
-  ShieldCheck, 
-  ChevronRight, 
-  X,
-  Star
-} from 'lucide-react';
+import { Zap, ListOrdered, Target, ShieldCheck, Hammer } from 'lucide-react';
 
-interface OnboardingStep {
-  title: string;
-  subtitle: string;
-  description: string;
-  icon: React.ElementType;
-  color: string;
-  image?: string;
-}
-
-const STEPS: OnboardingStep[] = [
+const FEATURES = [
   {
-    title: "Bem-vindo ao Facilita Aí",
-    subtitle: "Sua nova plataforma de serviços premium",
-    description: "Conectamos você aos melhores profissionais da região com segurança, agilidade e transparência.",
-    icon: Star,
-    color: "bg-orange-500",
-  },
-  {
-    title: "Modo SOS",
-    subtitle: "Emergências não esperam",
-    description: "Precisa de um eletricista ou encanador agora? Ative o Modo SOS para ver apenas quem está online e pronto para atender.",
     icon: Zap,
-    color: "bg-orange-500",
+    color: '#FF7A00',
+    title: 'Profissionais na palma da mão',
+    desc: 'Eletricistas, cabeleireiros, personal trainers e muito mais — perto de você, agora.',
   },
   {
-    title: "Fila Digital",
-    subtitle: "Diga adeus às esperas",
-    description: "Entre em filas virtuais e acompanhe sua posição em tempo real. Nós te avisamos quando for sua vez.",
     icon: ListOrdered,
-    color: "bg-blue-500",
+    color: '#3b82f6',
+    title: 'Fila digital sem estresse',
+    desc: 'Entre em filas virtuais e receba um aviso quando for sua vez.',
   },
   {
-    title: "Orçamento Inteligente",
-    subtitle: "O melhor preço, rápido",
-    description: "Descreva o que precisa e receba propostas personalizadas de profissionais verificados em minutos.",
     icon: Target,
-    color: "bg-green-500",
+    color: '#22c55e',
+    title: 'Orçamento em minutos',
+    desc: 'Descreva o serviço e receba propostas de profissionais verificados rapidamente.',
   },
   {
-    title: "Tudo Pronto!",
-    subtitle: "Sua segurança é nossa prioridade",
-    description: "Todos os profissionais passam por verificação rigorosa. Explore o mapa e facilite sua vida hoje.",
     icon: ShieldCheck,
-    color: "bg-purple-500",
-  }
+    color: '#a855f7',
+    title: 'Segurança e confiança',
+    desc: 'Todos os profissionais são avaliados pelos próprios clientes.',
+  },
 ];
 
+const FEATURE_DURATION = 2200;
+
 export function Onboarding({ onComplete }: { onComplete: () => void }) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
+  const [phase, setPhase] = useState<'features' | 'logo'>('features');
+  const [featureIndex, setFeatureIndex] = useState(0);
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    // Check if user has already seen onboarding
     const seen = localStorage.getItem('facilita_onboarding_seen');
     if (!seen) {
-      setIsVisible(true);
+      setVisible(true);
     } else {
       onComplete();
     }
   }, [onComplete]);
 
-  const handleNext = () => {
-    if (currentStep < STEPS.length - 1) {
-      setCurrentStep(prev => prev + 1);
-    } else {
-      handleComplete();
-    }
-  };
-
-  const handleComplete = () => {
-    localStorage.setItem('facilita_onboarding_seen', 'true');
-    setIsVisible(false);
-    setTimeout(onComplete, 500);
-  };
+  // Auto-advance features
+  useEffect(() => {
+    if (!visible || phase !== 'features') return;
+    const timer = setTimeout(() => {
+      if (featureIndex < FEATURES.length - 1) {
+        setFeatureIndex(i => i + 1);
+      } else {
+        setPhase('logo');
+      }
+    }, FEATURE_DURATION);
+    return () => clearTimeout(timer);
+  }, [visible, phase, featureIndex]);
 
   const handleSkip = () => {
-    handleComplete();
+    localStorage.setItem('facilita_onboarding_seen', 'true');
+    setVisible(false);
+    setTimeout(onComplete, 300);
   };
 
-  if (!isVisible) return null;
+  if (!visible) return null;
 
-  const step = STEPS[currentStep];
-  const Icon = step.icon;
+  const feat = FEATURES[featureIndex];
+  const Icon = feat.icon;
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#070b13]/95 backdrop-blur-xl px-6">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: -20 }}
-        className="w-full max-w-md bg-[#121826] border border-white/5 rounded-[40px] overflow-hidden shadow-2xl"
-      >
-        {/* Progress Bar */}
-        <div className="flex h-1 gap-1 px-8 pt-8">
-          {STEPS.map((s, i) => (
-            <div 
-              key={`step-${i}`} 
-              className={`h-full flex-1 rounded-full transition-all duration-500 ${i <= currentStep ? 'bg-orange-500' : 'bg-white/10'}`} 
-            />
-          ))}
-        </div>
-
-        <div className="p-8 pb-12 flex flex-col items-center text-center">
-          <button 
-            onClick={handleSkip}
-            className="absolute top-8 right-8 text-gray-500 hover:text-white transition-colors"
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={handleSkip}
+      className="fixed inset-0 z-[1900] flex flex-col items-center justify-center select-none cursor-pointer"
+      style={{ background: '#070b13' }}
+    >
+      <AnimatePresence mode="wait">
+        {phase === 'features' ? (
+          <motion.div
+            key={`feat-${featureIndex}`}
+            initial={{ opacity: 0, y: 32, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.97 }}
+            transition={{ type: 'spring', damping: 22, stiffness: 280 }}
+            className="flex flex-col items-center text-center px-10 max-w-sm w-full pointer-events-none"
           >
-            <X size={24} />
-          </button>
+            {/* Progress dots */}
+            <div className="flex gap-1.5 mb-12">
+              {FEATURES.map((_, i) => (
+                <div
+                  key={i}
+                  className="h-1 rounded-full transition-all duration-500"
+                  style={{
+                    width: i === featureIndex ? 24 : 6,
+                    background: i <= featureIndex ? feat.color : 'rgba(255,255,255,0.12)',
+                  }}
+                />
+              ))}
+            </div>
 
-          <AnimatePresence mode="wait">
+            <div
+              className="w-24 h-24 rounded-[32px] flex items-center justify-center mb-8"
+              style={{ background: `${feat.color}18`, border: `1px solid ${feat.color}35` }}
+            >
+              <Icon size={44} style={{ color: feat.color }} />
+            </div>
+
+            <h2 className="text-white font-black text-2xl uppercase italic tracking-tighter leading-tight mb-4">
+              {feat.title}
+            </h2>
+            <p className="text-gray-400 text-sm leading-relaxed">
+              {feat.desc}
+            </p>
+
+            {/* Progress bar */}
+            <div className="mt-16 w-full h-0.5 bg-white/5 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full rounded-full"
+                style={{ background: feat.color }}
+                initial={{ width: '0%' }}
+                animate={{ width: '100%' }}
+                transition={{ duration: FEATURE_DURATION / 1000, ease: 'linear' }}
+              />
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="logo"
+            initial={{ opacity: 0, scale: 0.88 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 200 }}
+            className="flex flex-col items-center text-center px-8 pointer-events-none"
+          >
             <motion.div
-              key={currentStep}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="flex flex-col items-center"
+              initial={{ scale: 0.6, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.1, type: 'spring', damping: 16, stiffness: 200 }}
+              className="w-24 h-24 rounded-[32px] flex items-center justify-center mb-8 shadow-2xl"
+              style={{
+                background: 'linear-gradient(135deg, #1a0e00, #2d1600)',
+                boxShadow: '0 20px 60px rgba(255,122,0,0.4)',
+                border: '1px solid rgba(255,122,0,0.3)',
+              }}
             >
-              <div className={`w-20 h-20 ${step.color} rounded-3xl flex items-center justify-center text-white mb-8 shadow-lg shadow-${step.color.split('-')[1]}-500/20`}>
-                <Icon size={40} strokeWidth={2.5} />
-              </div>
-
-              <h2 className="text-white font-black text-xl uppercase italic leading-none mb-2 tracking-tighter">
-                {step.title}
-              </h2>
-              <p className="text-orange-500 font-black text-[10px] uppercase tracking-[0.2em] mb-6">
-                {step.subtitle}
-              </p>
-              <p className="text-gray-400 text-sm font-medium leading-relaxed px-4">
-                {step.description}
-              </p>
+              <Hammer size={44} className="text-[#FF7A00]" />
             </motion.div>
-          </AnimatePresence>
 
-          <div className="w-full mt-12">
-            <button 
-              onClick={handleNext}
-              className="w-full bg-white text-[#070b13] py-5 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 group active:scale-95 transition-all shadow-xl"
+            <motion.h1
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.22 }}
+              className="text-5xl font-black italic uppercase tracking-tighter leading-none mb-3"
             >
-              {currentStep === STEPS.length - 1 ? 'Começar Agora' : 'Próximo'}
-              <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
-            </button>
-            <button 
-              onClick={handleSkip}
-              className="mt-4 text-gray-500 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors"
+              <span className="text-white">FACILITA</span>
+              <span className="text-[#FF7A00] ml-2">AÍ</span>
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.38 }}
+              className="text-gray-500 text-sm font-medium mb-16"
             >
-              Pular tutorial
-            </button>
-          </div>
-        </div>
-      </motion.div>
-    </div>
+              Tudo que você precisa, em um só lugar.
+            </motion.p>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-600"
+            >
+              Toque para começar
+            </motion.p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }

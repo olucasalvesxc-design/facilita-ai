@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { calculateDistance } from './lib/utils';
 import { 
-  Home, ShoppingBag, MessageSquare, 
+  Home, ShoppingBag, MessageSquare,
   Heart, Bell, User, Settings, Filter, MapPin, LayoutGrid, List,
-  Flashlight, Droplet, Brush, Hammer, 
+  Flashlight, Droplet, Brush, Hammer,
   ChevronRight, Star, X, LogIn, LogOut, ShieldCheck, Clock, Calendar, Search as SearchIcon, Plus, Phone, Package, Siren,
   Compass, Trash2, CheckCircle, Camera, Instagram, Globe, MessageCircle, Share2, ClipboardList, CreditCard, Check,
-  Lock, Minus, Users, History, CalendarCheck, ListOrdered, ChevronLeft, Map as MapIcon, MoreVertical, Send, Briefcase, Zap, 
-  Target, Info, HelpCircle, AlertTriangle, Crown
+  Lock, Minus, Users, History, CalendarCheck, ListOrdered, ChevronLeft, Map as MapIcon, MoreVertical, Send, Briefcase, Zap,
+  Target, Info, HelpCircle, AlertTriangle, Crown, Eye
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { compressImage } from './lib/imageUtils';
@@ -55,6 +55,9 @@ const ServiceManagement = React.lazy(() => import('./components/ServiceManagemen
 const BookingSystem     = React.lazy(() => import('./components/BookingSystem').then(m => ({ default: m.BookingSystem })));
 const SmartBudgetModal  = React.lazy(() => import('./components/SmartBudgetModal').then(m => ({ default: m.SmartBudgetModal })));
 const CompletionModal   = React.lazy(() => import('./components/CompletionModal').then(m => ({ default: m.CompletionModal })));
+
+import { DemoBanner, AuthPromptModal, DemoTour, DemoCtaBanner } from './components/DemoOverlay';
+import { MOCK_PROFESSIONALS, MOCK_PRODUCTS } from './data/mockData';
 
 // --- Helper Components ---
 
@@ -455,6 +458,10 @@ export default function App() {
   const [authResetMessage, setAuthResetMessage] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [showDemoTour, setShowDemoTour] = useState(false);
+  const [showAuthPromptDemo, setShowAuthPromptDemo] = useState(false);
+  const [authPromptMessage, setAuthPromptMessage] = useState('');
   const [isActionLoading, setIsActionLoading] = useState<Record<string, boolean>>({});
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [cropModal, setCropModal] = useState<{ src: string; type: 'photo' | 'banner' } | null>(null);
@@ -745,8 +752,37 @@ export default function App() {
     };
   }, []);
 
+  // Demo mode: inject mock data
+  useEffect(() => {
+    if (isDemoMode) {
+      setProfessionals(MOCK_PROFESSIONALS as any);
+      setProducts(MOCK_PRODUCTS as any);
+      setLoadingPros(false);
+      setLoadingProducts(false);
+      setProfileData({
+        name: 'Visitante Demo',
+        email: 'demo@facilitai.online',
+        role: 'client',
+        bio: 'Explorando o Facilita Aí — marketplace de profissionais e serviços locais.',
+        location: 'São Paulo, SP',
+        photoURL: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&h=400&fit=crop&crop=faces&auto=format&q=80',
+        bannerURL: '',
+        whatsapp: '',
+        instagram: '',
+        website: '',
+        skills: [],
+        emailNotifications: true,
+        publicProfile: true,
+        whatsappVisible: false,
+      });
+    } else {
+      setProfileData(null);
+    }
+  }, [isDemoMode]);
+
   // Professionals Listener
   useEffect(() => {
+    if (isDemoMode) return;
     setLoadingPros(true);
     const q = query(collection(db, 'professionals'));
     const unsub = onSnapshot(q, (snapshot) => {
@@ -1118,6 +1154,13 @@ export default function App() {
 
   const handleUpdateProfile = async (e: any) => {
     if (e && e.preventDefault) e.preventDefault();
+    if (isDemoMode) {
+      const skillsArray = editForm.skills.split(',').map((s: string) => s.trim()).filter((s: string) => s);
+      setProfileData((prev: any) => ({ ...prev, ...editForm, skills: skillsArray }));
+      setIsEditingProfile(false);
+      setActiveToast({ title: 'Perfil atualizado!', message: 'Suas alterações foram salvas com sucesso.' } as any);
+      return;
+    }
     if (!currentUser) return;
     setAuthLoading(true);
     try {
@@ -1318,7 +1361,15 @@ export default function App() {
     }
   };
 
+  const demoGuard = (msg?: string): boolean => {
+    if (!isDemoMode) return false;
+    setAuthPromptMessage(msg || '');
+    setShowAuthPromptDemo(true);
+    return true;
+  };
+
   const handleRequestBudget = (pro: Professional) => {
+    if (demoGuard('Crie sua conta para solicitar orçamentos e contratar profissionais.')) return;
     if (!currentUser) return alert('Faça login primeiro.');
     setBudgetPro(pro);
     setShowBudgetModal(true);
@@ -1434,9 +1485,9 @@ export default function App() {
   const handleSubscribePlan = async (plan: 'start' | 'pro' | 'ultra') => {
     if (!currentUser) return;
     const urls = {
-      start: import.meta.env.VITE_KIRVANO_START_URL || 'https://pay.kirvano.com/a9e4a8e1-a4c3-43de-933e-21cff8f3f8a3',
+      start: import.meta.env.VITE_KIRVANO_START_URL || 'https://pay.kirvano.com/91a2f328-df8f-440b-a861-75b12d403555',
       pro: import.meta.env.VITE_KIRVANO_CHECKOUT_URL || 'https://pay.kirvano.com/a9e4a8e1-a4c3-43de-933e-21cff8f3f8a3',
-      ultra: import.meta.env.VITE_KIRVANO_ULTRA_URL || 'https://pay.kirvano.com/a9e4a8e1-a4c3-43de-933e-21cff8f3f8a3',
+      ultra: import.meta.env.VITE_KIRVANO_ULTRA_URL || 'https://pay.kirvano.com/e4542ed3-1b2c-48b8-88ce-09adbce42d15',
     };
     try {
       await setDoc(doc(db, 'professionals', currentUser.uid), {
@@ -1755,7 +1806,7 @@ export default function App() {
     }
   };
 
-  if (!currentUser) {
+  if (!currentUser && !isDemoMode) {
     return (
       <>
         <AnimatePresence>
@@ -1801,12 +1852,18 @@ export default function App() {
                 {authLoading ? 'Processando...' : isSignUpMode ? 'Criar Conta' : 'Entrar'}
               </button>
             </form>
-            <button onClick={handleGoogleLogin} className="w-full flex items-center justify-center gap-2 bg-white text-[#070b13] font-bold py-3 rounded-2xl mb-3 text-sm active:scale-95 transition-transform">
-              <LogIn size={18} />Continuar com Google
-            </button>
-            <button onClick={() => { setIsSignUpMode(!isSignUpMode); setAuthError(null); }} className="text-xs text-orange-500 font-bold">
+            <button onClick={() => { setIsSignUpMode(!isSignUpMode); setAuthError(null); }} className="text-xs text-orange-500 font-bold mb-4">
               {isSignUpMode ? 'Já tem conta? Entre' : 'Não tem conta? Cadastre-se'}
             </button>
+            <div className="border-t border-white/5 pt-4">
+              <button
+                onClick={() => { setIsDemoMode(true); setShowDemoTour(true); }}
+                className="w-full flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-gray-400 font-bold py-3 rounded-2xl text-sm active:scale-95 transition-all hover:bg-white/10 hover:text-white"
+              >
+                <Eye size={16} className="text-orange-400" />
+                Explorar como visitante
+              </button>
+            </div>
           </motion.div>
         </div>
       </>
@@ -1817,7 +1874,7 @@ export default function App() {
       <div className="min-h-screen bg-[#070b13] text-white flex overflow-x-hidden relative">
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} onBecomePro={() => setIsProModalOpen(true)} userRole={isAdmin ? 'admin' : profileData?.role} />
       <main className="flex-grow flex flex-col min-w-0 overflow-x-hidden pb-24 lg:pb-0">
-        <header className="px-5 py-6 sm:px-8 lg:px-12 flex items-center justify-between sticky top-0 bg-[#070b13]/90 backdrop-blur-3xl z-[90] shrink-0">
+        <header className={`px-5 py-6 sm:px-8 lg:px-12 flex items-center justify-between sticky top-0 bg-[#070b13]/90 backdrop-blur-3xl z-[90] shrink-0 ${isDemoMode ? 'pt-14' : ''}`}>
           <div onClick={() => setActiveTab('home')} className="flex items-center gap-3 cursor-pointer group">
             <div className="w-11 h-11 rounded-[18px] flex items-center justify-center group-active:scale-95 transition-all shrink-0" style={{ background: 'linear-gradient(135deg, #1a0e00, #2d1600)', boxShadow: '0 10px 20px rgba(255,122,0,0.35)', border: '1px solid rgba(255,122,0,0.25)' }}>
               <Hammer size={22} className="text-[#FF7A00]" />
@@ -2258,6 +2315,7 @@ export default function App() {
                             product={product}
                             distance={distance}
                             onBuy={(p) => {
+                              if (demoGuard('Crie sua conta para comprar produtos e falar com vendedores.')) return;
                               const whatsapp = pro?.whatsapp || profileData?.whatsapp || '';
                               const text = `Olá ${p.proName}, vi o produto [${p.name}] no Facilita Aí e tenho interesse em comprar.`;
                               window.open(`https://wa.me/55${whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
@@ -4033,9 +4091,10 @@ export default function App() {
                   {selectedPro.whatsapp && selectedPro.whatsappVisible ? (
                     <motion.a
                       whileTap={{ scale: 0.95 }}
-                      href={`https://wa.me/55${selectedPro.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${selectedPro.name}! Vi seu perfil no Facilita Aí e gostaria de solicitar um serviço.`)}`}
-                      target="_blank"
+                      href={isDemoMode ? '#' : `https://wa.me/55${selectedPro.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${selectedPro.name}! Vi seu perfil no Facilita Aí e gostaria de solicitar um serviço.`)}`}
+                      target={isDemoMode ? '_self' : '_blank'}
                       rel="noopener noreferrer"
+                      onClick={(e) => { if (demoGuard('Crie sua conta para falar direto com o profissional pelo WhatsApp.')) e.preventDefault(); }}
                       className="flex flex-col items-center justify-center gap-1 h-14 bg-[#25D366] rounded-2xl text-white shadow-lg shadow-[#25D366]/20 active:scale-95 transition-all"
                     >
                       <MessageCircle size={18} strokeWidth={2.5} />
@@ -4491,6 +4550,23 @@ export default function App() {
           )}
         </AnimatePresence>
       </AnimatePresence>
+
+      {/* Demo Mode Overlays */}
+      {isDemoMode && (
+        <DemoBanner
+          onExit={() => { setIsDemoMode(false); setProfessionals([]); setProducts([]); }}
+          onSignUp={() => { setIsDemoMode(false); setIsSignUpMode(true); }}
+        />
+      )}
+      {isDemoMode && showDemoTour && <DemoTour onDone={() => setShowDemoTour(false)} />}
+      <AuthPromptModal
+        open={showAuthPromptDemo}
+        onClose={() => setShowAuthPromptDemo(false)}
+        onSignUp={() => { setIsDemoMode(false); setShowAuthPromptDemo(false); setIsSignUpMode(true); }}
+        onLogin={() => { setIsDemoMode(false); setShowAuthPromptDemo(false); setIsSignUpMode(false); }}
+        message={authPromptMessage}
+      />
+      {isDemoMode && <DemoCtaBanner onSignUp={() => { setIsDemoMode(false); setIsSignUpMode(true); }} onLogin={() => { setIsDemoMode(false); setIsSignUpMode(false); }} />}
     </div>
   );
 }

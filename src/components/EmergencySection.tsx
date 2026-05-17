@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
   Phone, MapPin, Navigation, ExternalLink, Shield,
   Activity, Flame, Siren, AlertCircle, Info, Search,
-  Stethoscope, Pill, Truck, Eye
+  Stethoscope, Pill, Truck, Eye, X
 } from 'lucide-react';
 import { db, collection, query, onSnapshot, orderBy } from '../lib/firebase';
 
@@ -149,6 +149,7 @@ export const EmergencySection = () => {
   const [localNumbers, setLocalNumbers] = useState<any[]>([]);
   const [retryCount, setRetryCount] = useState(0);
   const [searchRadius, setSearchRadius] = useState(10000);
+  const [routeTarget, setRouteTarget] = useState<PlaceResult | null>(null);
 
   useEffect(() => {
     const q = query(collection(db, 'emergency_numbers'), orderBy('label', 'asc'));
@@ -181,10 +182,10 @@ export const EmergencySection = () => {
   }, [userLocation, selectedCategory, retryCount, searchRadius]);
 
   const handleCall = (number: string) => { window.location.href = `tel:${number}`; };
-  const openRoute = (place: PlaceResult) =>
+  const openWithWaze = (place: PlaceResult) =>
+    window.open(`https://waze.com/ul?ll=${place.location.lat},${place.location.lng}&navigate=yes`, '_blank');
+  const openWithMaps = (place: PlaceResult) =>
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${place.location.lat},${place.location.lng}`, '_blank');
-  const openInMaps = (lat: number, lng: number) =>
-    window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
 
   return (
     <div className="px-4 sm:px-6 lg:px-12 py-6 sm:py-8 max-w-6xl mx-auto w-full space-y-8 sm:space-y-10">
@@ -285,20 +286,12 @@ export const EmergencySection = () => {
                         <div style={{ minWidth: 180, padding: 4 }}>
                           <strong style={{ fontSize: 13 }}>{place.displayName}</strong>
                           <p style={{ fontSize: 11, color: '#666', margin: '4px 0 8px' }}>{place.formattedAddress}</p>
-                          <div style={{ display: 'flex', gap: 6 }}>
-                            <button
-                              onClick={() => openRoute(place)}
-                              style={{ flex: 1, background: '#f97316', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 4px', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
-                            >
-                              <Navigation size={11} /> Rota
-                            </button>
-                            <button
-                              onClick={() => openInMaps(place.location.lat, place.location.lng)}
-                              style={{ flex: 1, background: 'transparent', color: '#f97316', border: '1px solid #f97316', borderRadius: 8, padding: '6px 4px', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
-                            >
-                              <ExternalLink size={11} /> Maps
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => setRouteTarget(place)}
+                            style={{ width: '100%', background: '#f97316', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 4px', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
+                          >
+                            <Navigation size={11} /> Ver Rota
+                          </button>
                         </div>
                       </Popup>
                     </Marker>
@@ -355,25 +348,93 @@ export const EmergencySection = () => {
               >
                 <h4 className="text-white font-bold text-sm leading-tight mb-1 group-hover:text-orange-500 transition-colors">{place.displayName}</h4>
                 <p className="text-gray-500 text-[10px] mb-3 line-clamp-1 italic">{place.formattedAddress}</p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => openRoute(place)}
-                    className="flex-grow bg-white/5 hover:bg-orange-500 text-white text-[9px] font-black uppercase py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 active:scale-95"
-                  >
-                    <Navigation size={11} /> Ver Rota
-                  </button>
-                  <button
-                    onClick={() => openInMaps(place.location.lat, place.location.lng)}
-                    className="flex-grow bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white text-[9px] font-black uppercase py-2 rounded-xl border border-white/5 transition-all flex items-center justify-center gap-1.5 active:scale-95"
-                  >
-                    <ExternalLink size={11} /> Google Maps
-                  </button>
-                </div>
+                <button
+                  onClick={() => setRouteTarget(place)}
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white text-[9px] font-black uppercase py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-lg shadow-orange-500/20"
+                >
+                  <Navigation size={11} /> Ver Rota
+                </button>
               </motion.div>
             ))}
           </div>
         </div>
       </div>
+
+      {/* Modal: escolher app de navegação */}
+      <AnimatePresence>
+        {routeTarget && (
+          <div className="fixed inset-0 z-[2000] flex items-end justify-center">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setRouteTarget(null)}
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 26, stiffness: 320 }}
+              className="relative w-full max-w-sm bg-[#121826] rounded-t-[36px] p-6 pb-10 border-t border-white/10 shadow-2xl"
+            >
+              <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
+
+              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest text-center mb-1">Abrir rota para</p>
+              <h3 className="text-white font-black text-base uppercase italic tracking-tighter text-center mb-6 leading-tight line-clamp-1">
+                {routeTarget.displayName}
+              </h3>
+
+              <div className="space-y-3">
+                {/* Waze */}
+                <button
+                  onClick={() => { openWithWaze(routeTarget); setRouteTarget(null); }}
+                  className="w-full flex items-center gap-4 p-4 rounded-2xl transition-all active:scale-95 hover:opacity-90"
+                  style={{ background: 'linear-gradient(135deg, #05c8f7, #0288d1)' }}
+                >
+                  <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+                    {/* Waze logo SVG */}
+                    <svg width="24" height="24" viewBox="0 0 50 50" fill="white">
+                      <path d="M25 3C13 3 3 13 3 25c0 6.4 2.7 12.2 7 16.3L8 45l4.2-1.3C15.2 45.5 20 47 25 47c12 0 22-10 22-22S37 3 25 3zm0 38c-4.3 0-8.3-1.4-11.5-3.8l-2.4.8 1-2.3C9.8 32.8 8 29 8 25c0-9.4 7.6-17 17-17s17 7.6 17 17-7.6 16-17 16z"/>
+                      <circle cx="20" cy="22" r="2.5" fill="white"/>
+                      <circle cx="30" cy="22" r="2.5" fill="white"/>
+                      <path d="M19 29s2 3 6 3 6-3 6-3" stroke="white" strokeWidth="2" strokeLinecap="round" fill="none"/>
+                    </svg>
+                  </div>
+                  <div className="text-left">
+                    <p className="text-white font-black text-sm uppercase tracking-tight">Waze</p>
+                    <p className="text-white/70 text-[10px]">Navegação em tempo real</p>
+                  </div>
+                  <ExternalLink size={16} className="ml-auto text-white/60" />
+                </button>
+
+                {/* Google Maps */}
+                <button
+                  onClick={() => { openWithMaps(routeTarget); setRouteTarget(null); }}
+                  className="w-full flex items-center gap-4 p-4 rounded-2xl transition-all active:scale-95 hover:opacity-90"
+                  style={{ background: 'linear-gradient(135deg, #34a853, #1a6e30)' }}
+                >
+                  <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+                    <MapPin size={22} className="text-white" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-white font-black text-sm uppercase tracking-tight">Google Maps</p>
+                    <p className="text-white/70 text-[10px]">Rotas e tráfego</p>
+                  </div>
+                  <ExternalLink size={16} className="ml-auto text-white/60" />
+                </button>
+              </div>
+
+              <button
+                onClick={() => setRouteTarget(null)}
+                className="w-full mt-4 py-3 text-gray-500 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors flex items-center justify-center gap-2"
+              >
+                <X size={12} /> Cancelar
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

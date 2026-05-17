@@ -16,7 +16,7 @@ function initAdmin() {
 // Map Kirvano product IDs to plan keys
 const PLAN_MAP: Record<string, 'start' | 'pro' | 'ultra'> = {
   [process.env.KIRVANO_PRODUCT_START || 'start']: 'start',
-  [process.env.KIRVANO_PRODUCT_PRO   || 'pro']:   'pro',
+  [process.env.KIRVANO_PRODUCT_PRO || process.env.KIRVANO_PRO_PRODUCT_ID || 'pro']: 'pro',
   [process.env.KIRVANO_PRODUCT_ULTRA || 'ultra']: 'ultra',
 };
 
@@ -80,7 +80,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const proRef = db.collection('professionals').doc(userId);
     const proSnap = await proRef.get();
 
-    if (!proSnap.exists()) {
+    if (!proSnap.exists) {
       console.warn('No professional document for uid:', userId);
       return res.status(200).json({ skipped: 'pro_not_found', userId });
     }

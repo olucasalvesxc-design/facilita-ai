@@ -22,7 +22,7 @@ const PLANS = [
     border: 'border-blue-500/30',
     badge: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
     glow: 'shadow-blue-500/20',
-    kirvanoUrl: import.meta.env.VITE_KIRVANO_START_URL || 'https://pay.kirvano.com/a9e4a8e1-a4c3-43de-933e-21cff8f3f8a3',
+    kirvanoUrl: import.meta.env.VITE_KIRVANO_START_URL || 'https://pay.kirvano.com/91a2f328-df8f-440b-a861-75b12d403555',
     benefits: [
       { icon: ShieldCheck, text: 'Badge "Start" no perfil' },
       { icon: Users, text: 'Aparecer na busca de clientes' },
@@ -75,7 +75,7 @@ const PLANS = [
     border: 'border-yellow-500/40',
     badge: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
     glow: 'shadow-yellow-500/20',
-    kirvanoUrl: import.meta.env.VITE_KIRVANO_ULTRA_URL || 'https://pay.kirvano.com/a9e4a8e1-a4c3-43de-933e-21cff8f3f8a3',
+    kirvanoUrl: import.meta.env.VITE_KIRVANO_ULTRA_URL || 'https://pay.kirvano.com/e4542ed3-1b2c-48b8-88ce-09adbce42d15',
     benefits: [
       { icon: ShieldCheck, text: 'Badge "Ultra" dourado no perfil' },
       { icon: Users, text: 'Aparecer na busca de clientes' },
@@ -236,13 +236,19 @@ export function PlansModal({ onClose, currentUser, profileData, onSubscribe }: P
 
         {/* CTA */}
         <div className="px-6 pb-6 pt-4 shrink-0 border-t border-white/5 bg-[#0a0f1c]">
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={handleSubscribe}
-            className={`w-full py-5 rounded-[20px] font-black uppercase tracking-widest text-sm text-white bg-gradient-to-r ${plan.gradient} shadow-xl ${plan.glow} transition-all active:scale-[0.98]`}
-          >
-            Assinar Plano {plan.name} — {plan.price}/mês
-          </motion.button>
+          {(plan as any).comingSoon ? (
+            <div className="w-full py-5 rounded-[20px] font-black uppercase tracking-widest text-sm text-gray-500 bg-white/5 border border-white/10 text-center cursor-not-allowed select-none">
+              Em breve
+            </div>
+          ) : (
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={handleSubscribe}
+              className={`w-full py-5 rounded-[20px] font-black uppercase tracking-widest text-sm text-white bg-gradient-to-r ${plan.gradient} shadow-xl ${plan.glow} transition-all active:scale-[0.98]`}
+            >
+              Assinar Plano {plan.name} — {plan.price}/mês
+            </motion.button>
+          )}
           <p className="text-center text-[9px] text-gray-600 font-bold mt-3 uppercase tracking-widest">
             Pagamento seguro via Kirvano · Sem fidelidade
           </p>
