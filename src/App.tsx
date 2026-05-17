@@ -3079,6 +3079,23 @@ export default function App() {
                              <Share2 size={20} className="text-gray-400" />
                              <span className="text-[10px] font-black uppercase text-gray-400">Compartilhar</span>
                            </div>
+                           <button
+                             onClick={async () => {
+                               const token = await requestPushPermission();
+                               if (token) {
+                                 setActiveToast({ title: '🔔 Notificações ativadas!', message: 'Você receberá alertas de novas mensagens.' } as any);
+                               } else {
+                                 const perm = 'Notification' in window ? Notification.permission : 'unsupported';
+                                 if (perm === 'denied') alert('Notificações bloqueadas. Vá em Configurações do navegador → Notificações → facilitai.online → Permitir.');
+                                 else if (perm === 'granted') setActiveToast({ title: '🔔 Notificações já ativas!', message: 'Você já está recebendo notificações.' } as any);
+                                 else alert('Não foi possível ativar. Tente novamente.');
+                               }
+                             }}
+                             className={`p-4 rounded-2xl border flex flex-col items-center gap-2 transition-all ${'Notification' in window && Notification.permission === 'granted' ? 'bg-orange-500/10 border-orange-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
+                           >
+                             <Bell size={20} className={'Notification' in window && Notification.permission === 'granted' ? 'text-orange-500' : 'text-gray-400'} />
+                             <span className={`text-[10px] font-black uppercase ${'Notification' in window && Notification.permission === 'granted' ? 'text-orange-500' : 'text-gray-400'}`}>Alertas</span>
+                           </button>
                         </div>
                       </div>
                     )}

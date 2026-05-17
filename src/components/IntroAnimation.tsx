@@ -19,10 +19,10 @@ export function IntroAnimation({ onComplete }: IntroAnimationProps) {
 
   useEffect(() => {
     const t = [
-      setTimeout(() => setPhase(1), 350),   // logo mini
-      setTimeout(() => setPhase(2), 1200),  // story beats
-      setTimeout(() => setPhase(3), 3100),  // logo grande
-      setTimeout(() => onComplete(), 5000),
+      setTimeout(() => setPhase(1), 200),   // logo mini
+      setTimeout(() => setPhase(2), 600),  // story beats
+      setTimeout(() => setPhase(3), 2200),  // logo grande
+      setTimeout(() => onComplete(), 3800),
     ];
     return () => t.forEach(clearTimeout);
   }, [onComplete]);
