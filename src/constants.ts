@@ -138,7 +138,7 @@ export const PRO_PLANS = [
   {
     id: 'start',
     name: 'Plano Start',
-    price: 9.90,
+    price: 14.90,
     maxProducts: 4,
     features: [
       'Pode publicar produtos',
@@ -151,7 +151,7 @@ export const PRO_PLANS = [
   {
     id: 'pro',
     name: 'Plano Pro',
-    price: 27.90,
+    price: 23.90,
     maxProducts: 20,
     features: [
       'Tudo do plano Start',
@@ -163,7 +163,7 @@ export const PRO_PLANS = [
   {
     id: 'ultra',
     name: 'Plano Ultra',
-    price: 87.90,
+    price: 39.90,
     maxProducts: Infinity,
     features: [
       'Produtos ilimitados',
