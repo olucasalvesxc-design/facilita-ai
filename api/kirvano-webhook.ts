@@ -89,6 +89,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       subscriptionType: plan,
       subscriptionStatus: 'active',
       subscriptionExpiresAt: expiresAt,
+      professionalStatus: 'active',
+      isActive: true,
+      updatedAt: new Date(),
+    });
+
+    // Also set role to 'pro' in users collection
+    await db.collection('users').doc(userId).update({
+      role: 'pro',
       updatedAt: new Date(),
     });
 
