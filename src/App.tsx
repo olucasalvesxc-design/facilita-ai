@@ -1369,6 +1369,15 @@ export default function App() {
     return true;
   };
 
+  const handleTabChange = (tab: string) => {
+    const protected_tabs = ['chat_list', 'chat', 'orders'];
+    if (isDemoMode && protected_tabs.includes(tab)) {
+      demoGuard('Crie sua conta para ver suas mensagens e pedidos.');
+      return;
+    }
+    setActiveTab(tab);
+  };
+
   const handleRequestBudget = (pro: Professional) => {
     if (demoGuard('Crie sua conta para solicitar orçamentos e contratar profissionais.')) return;
     if (!currentUser) return alert('Faça login primeiro.');
@@ -1619,6 +1628,7 @@ export default function App() {
   };
 
   const openChat = async (pro: Professional) => {
+    if (demoGuard('Crie sua conta para conversar com profissionais.')) return;
     if (!currentUser) return;
     const uid = currentUser.uid;
     const proUid = pro.userId;
@@ -1876,7 +1886,7 @@ export default function App() {
 
   return (
       <div className="min-h-screen bg-[#070b13] text-white flex overflow-x-hidden relative">
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} onBecomePro={() => setIsProModalOpen(true)} userRole={isAdmin ? 'admin' : profileData?.role} />
+      <Sidebar activeTab={activeTab} onTabChange={handleTabChange} onBecomePro={() => setIsProModalOpen(true)} userRole={isAdmin ? 'admin' : profileData?.role} />
       <main className="flex-grow flex flex-col min-w-0 overflow-x-hidden pb-24 lg:pb-0">
         <header className={`px-5 py-6 sm:px-8 lg:px-12 flex items-center justify-between sticky top-0 bg-[#070b13]/90 backdrop-blur-3xl z-[90] shrink-0 ${isDemoMode ? 'pt-14' : ''}`}>
           <div onClick={() => setActiveTab('home')} className="flex items-center gap-3 cursor-pointer group">
@@ -1990,7 +2000,7 @@ export default function App() {
             </div>
             <div className="relative">
               <button
-                onClick={() => { setActiveChatId(null); setActiveTab('chat_list'); }}
+                onClick={() => { setActiveChatId(null); handleTabChange('chat_list'); }}
                 className={`w-11 h-11 rounded-2xl border flex items-center justify-center transition-all ${(activeTab === 'chat' || activeTab === 'chat_list') ? 'bg-orange-500/15 border-orange-500/30 text-orange-500' : 'bg-white/5 border-white/5 text-gray-400 hover:text-white'}`}
               >
                 <MessageSquare size={20} />
@@ -3823,9 +3833,10 @@ export default function App() {
       </main>
       <BottomNav
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         userRole={isAdmin ? 'admin' : profileData?.role}
         onPublishService={() => {
+          if (demoGuard('Crie sua conta para publicar serviços na plataforma.')) return;
           const isPro = profileData?.role === 'pro';
           if (isPro) {
             setActiveTab('pro_dashboard');
@@ -3835,6 +3846,7 @@ export default function App() {
           }
         }}
         onPublishProduct={() => {
+          if (demoGuard('Crie sua conta para publicar produtos na plataforma.')) return;
           const isPro = profileData?.role === 'pro';
           if (isPro) {
             setActiveTab('pro_dashboard');
