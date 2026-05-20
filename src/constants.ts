@@ -134,12 +134,19 @@ export const POPULAR_CATEGORIES = [
   }
 ];
 
+export const PLAN_CHECKOUT_URLS = {
+  start: (import.meta as any).env?.VITE_KIRVANO_START_URL   || 'https://pay.kirvano.com/91a2f328-df8f-440b-a861-75b12d403555',
+  pro:   (import.meta as any).env?.VITE_KIRVANO_CHECKOUT_URL || 'https://pay.kirvano.com/a9e4a8e1-a4c3-43de-933e-21cff8f3f8a3',
+  ultra: (import.meta as any).env?.VITE_KIRVANO_ULTRA_URL    || 'https://pay.kirvano.com/e4542ed3-1b2c-48b8-88ce-09adbce42d15',
+};
+
 export const PRO_PLANS = [
   {
     id: 'start',
     name: 'Plano Start',
     price: 14.90,
     maxProducts: 4,
+    checkoutUrl: PLAN_CHECKOUT_URLS.start,
     features: [
       'Pode publicar produtos',
       'Pode vender pelo WhatsApp',
@@ -153,6 +160,7 @@ export const PRO_PLANS = [
     name: 'Plano Pro',
     price: 23.90,
     maxProducts: 20,
+    checkoutUrl: PLAN_CHECKOUT_URLS.pro,
     features: [
       'Tudo do plano Start',
       'Até 20 posts',
@@ -165,6 +173,7 @@ export const PRO_PLANS = [
     name: 'Plano Ultra',
     price: 39.90,
     maxProducts: Infinity,
+    checkoutUrl: PLAN_CHECKOUT_URLS.ultra,
     features: [
       'Produtos ilimitados',
       'Destaque principal',

@@ -10,7 +10,7 @@ import {
 } from '../lib/firebase';
 import { Product, Professional } from '../types';
 import { compressImage } from '../lib/imageUtils';
-import { PRO_PLANS, KIRVANO_CHECKOUT_URL } from '../constants';
+import { PRO_PLANS, PLAN_CHECKOUT_URLS } from '../constants';
 import { auth } from '../lib/firebase';
 
 interface ProductManagementProps {
@@ -250,7 +250,7 @@ export const ProductManagement = ({ professional, onPublish }: ProductManagement
             </div>
           </div>
           <button
-            onClick={() => window.open(KIRVANO_CHECKOUT_URL, '_blank')}
+            onClick={() => window.open(PLAN_CHECKOUT_URLS[professional?.subscriptionType as keyof typeof PLAN_CHECKOUT_URLS] || PLAN_CHECKOUT_URLS.pro, '_blank')}
             className="bg-red-500 text-white px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-red-500/20 shrink-0"
           >
             Renovar Agora
@@ -650,7 +650,7 @@ export const ProductManagement = ({ professional, onPublish }: ProductManagement
                     <button
                       onClick={() => {
                         if (professional.subscriptionType !== plan.id) {
-                          window.open(KIRVANO_CHECKOUT_URL, '_blank');
+                          window.open(plan.checkoutUrl, '_blank');
                         }
                       }}
                       className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all ${
