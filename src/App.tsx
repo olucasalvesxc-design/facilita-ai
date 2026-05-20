@@ -460,6 +460,7 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(false);
   const [showIntro, setShowIntro] = useState(() => !sessionStorage.getItem('intro_shown'));
   const [showLanding, setShowLanding] = useState(() => !sessionStorage.getItem('landing_seen'));
+  const [authResolved, setAuthResolved] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [showDemoTour, setShowDemoTour] = useState(false);
   const [showAuthPromptDemo, setShowAuthPromptDemo] = useState(false);
@@ -746,6 +747,7 @@ export default function App() {
         setCurrentProfessional(null);
         if (profileUnsub) profileUnsub();
       }
+      setAuthResolved(true);
     });
 
     return () => {
@@ -1825,7 +1827,7 @@ export default function App() {
     );
   }
 
-  if (!currentUser && !isDemoMode && showLanding) {
+  if (showLanding && !isDemoMode) {
     return (
       <Landing
         onEnterApp={() => {
