@@ -459,7 +459,7 @@ export default function App() {
   const [authResetMessage, setAuthResetMessage] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
   const [showIntro, setShowIntro] = useState(() => !sessionStorage.getItem('intro_shown'));
-  const [showLanding, setShowLanding] = useState(() => new URLSearchParams(window.location.search).has('landing') || !sessionStorage.getItem('landing_seen'));
+  const [landingDismissed, setLandingDismissed] = useState(false);
   const [authResolved, setAuthResolved] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [showDemoTour, setShowDemoTour] = useState(false);
@@ -1827,14 +1827,9 @@ export default function App() {
     );
   }
 
-  if (showLanding && !isDemoMode) {
+  if (authResolved && !currentUser && !isDemoMode && !landingDismissed) {
     return (
-      <Landing
-        onEnterApp={() => {
-          sessionStorage.setItem('landing_seen', '1');
-          setShowLanding(false);
-        }}
-      />
+      <Landing onEnterApp={() => setLandingDismissed(true)} />
     );
   }
 
