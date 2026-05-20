@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Facilita Aí — Tudo em um só lugar</title>
+<meta name="description" content="Encontre profissionais, compre produtos locais, agende serviços e resolva emergências em segundos."/>
+<meta property="og:title" content="Facilita Aí — Tudo em um só lugar"/>
+<meta property="og:description" content="A plataforma que resolve seus problemas com profissionais verificados perto de você."/>
+<meta property="og:type" content="website"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+:root{--og:#FF7A00;--dark:#050505;--card:#0c0c0c}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--dark);color:#fff;overflow-x:hidden}
+.syne{font-family:'Syne',sans-serif}
+
+/* grain */
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9000;opacity:.35;
+background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E")}
+
+/* slide system */
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;opacity:0;transform:translateY(24px) scale(.98);transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1);pointer-events:none}
+.slide.active{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+.slide.exit{opacity:0;transform:translateY(-16px) scale(.98)}
+
+/* mascot float */
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes blink{0%,88%,100%{scaleY:1}93%{transform:scaleY(.05)}}
+@keyframes pulse{0%,100%{filter:drop-shadow(0 0 14px rgba(255,122,0,.3))}50%{filter:drop-shadow(0 0 28px rgba(255,122,0,.6))}}
+@keyframes ping{0%{transform:scale(1);opacity:.7}100%{transform:scale(2.2);opacity:0}}
+.mascot-wrap{animation:float 3s ease-in-out infinite,pulse 3s ease-in-out infinite}
+
+/* cards */
+.feat-card{background:var(--card);border:1px solid rgba(255,255,255,.06);border-radius:28px;padding:1.75rem;transition:border-color .3s,box-shadow .3s,transform .3s}
+.feat-card:hover{border-color:rgba(255,122,0,.4);box-shadow:0 0 40px rgba(255,122,0,.08),0 20px 40px rgba(0,0,0,.3);transform:translateY(-4px)}
+
+/* reveal */
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1)}
+.revealed{opacity:1;transform:none}
+
+/* nav */
+.nav-glass{backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:rgba(5,5,5,.85);border-bottom:1px solid rgba(255,255,255,.05)}
+
+/* btn */
+.btn-og{background:linear-gradient(135deg,#FF7A00,#FF5500);box-shadow:0 0 40px rgba(255,122,0,.3),0 8px 24px rgba(0,0,0,.3);transition:transform .2s,box-shadow .2s;border:none;cursor:pointer;color:#fff;font-family:'Syne',sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:.12em}
+.btn-og:hover{transform:translateY(-2px);box-shadow:0 0 60px rgba(255,122,0,.4),0 12px 32px rgba(0,0,0,.3)}
+.btn-ghost{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-family:'Syne',sans-serif;font-weight:700;cursor:pointer;transition:border-color .2s,color .2s}
+.btn-ghost:hover{border-color:rgba(255,122,0,.35);color:#fff}
+
+/* progress bar */
+@keyframes prog{from{width:0}to{width:100%}}
+.progress-anim{animation:prog 5s linear forwards}
+
+/* dot grid bg */
+.dot-grid{background-image:radial-gradient(rgba(255,255,255,.03) 1px,transparent 1px);background-size:28px 28px}
+
+/* gradient border util */
+.gb{position:relative}
+.gb::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;background:linear-gradient(135deg,rgba(255,122,0,.4),transparent,rgba(255,122,0,.15));-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+
+/* product card */
+.prod-card{background:var(--card);border:1px solid rgba(255,255,255,.06);border-radius:24px;overflow:hidden;transition:transform .3s,box-shadow .3s}
+.prod-card:hover{transform:scale(1.03);box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.prod-card img{width:100%;aspect-ratio:1;object-fit:cover;transition:transform .5s}
+.prod-card:hover img{transform:scale(1.1)}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="nav" class="fixed top-0 inset-x-0 z-50 transition-all duration-500">
+  <div class="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-2.5 cursor-pointer" onclick="scrollTo({top:0,behavior:'smooth'})">
+      <div style="width:36px;height:36px;background:#FF7A00;border-radius:12px;box-shadow:0 0 20px rgba(255,122,0,.4);display:flex;align-items:center;justify-content:center">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+      </div>
+      <span class="syne font-black text-white text-lg" style="letter-spacing:-.02em">Facilita<span style="color:#FF7A00">Aí</span></span>
+    </div>
+    <div class="hidden md:flex items-center gap-8 text-sm font-medium" style="color:rgba(255,255,255,.5)">
+      <a href="#como-funciona" class="hover:text-white transition-colors" style="text-decoration:none">Como funciona</a>
+      <a href="#funcionalidades" class="hover:text-white transition-colors" style="text-decoration:none">Funcionalidades</a>
+      <a href="#profissionais" class="hover:text-white transition-colors" style="text-decoration:none">Profissionais</a>
+    </div>
+    <a href="/" class="btn-og px-5 py-2.5 rounded-xl text-xs no-underline">Acessar app</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero" class="relative min-h-screen flex flex-col overflow-hidden dot-grid" style="background:radial-gradient(ellipse 90% 60% at 50% 0%,rgba(255,122,0,.07) 0%,transparent 65%),#050505">
+  <div id="slides" class="relative flex-1 flex items-center" style="min-height:80vh">
+
+    <!-- SLIDE 0 -->
+    <div class="slide active" data-bg="rgba(255,122,0,.06)">
+      <div class="text-center max-w-2xl mx-auto px-4 flex flex-col items-center gap-8">
+        <span class="inline-flex items-center gap-2 text-xs font-black uppercase px-4 py-2 rounded-full syne" style="color:#FF7A00;background:rgba(255,122,0,.1);border:1px solid rgba(255,122,0,.2);letter-spacing:.25em">
+          <span style="width:6px;height:6px;border-radius:50%;background:#FF7A00;display:inline-block"></span>O problema
+        </span>
+        <div class="flex items-end gap-8 justify-center">
+          <div class="relative" style="width:120px;height:120px;display:flex;align-items:center;justify-content:center">
+            <span class="absolute syne font-black" style="font-size:2.5rem;color:#FF7A00;opacity:.35;top:-8px;left:-16px;animation:float 2s ease-in-out infinite">?</span>
+            <span class="absolute syne font-black" style="font-size:2rem;color:#FF7A00;opacity:.25;top:-20px;right:4px;animation:float 2.4s ease-in-out infinite .3s">?</span>
+            <span class="absolute syne font-black" style="font-size:2.2rem;color:#FF7A00;opacity:.3;bottom:-4px;right:-16px;animation:float 1.8s ease-in-out infinite .6s">?</span>
+            <svg width="72" height="72" viewBox="0 0 72 72" fill="none"><circle cx="36" cy="36" r="35" stroke="rgba(255,122,0,.15)" stroke-width="2"/><circle cx="32" cy="30" r="14" stroke="#FF7A00" stroke-width="2.5" stroke-linecap="round"/><line x1="43" y1="42" x2="54" y2="54" stroke="#FF7A00" stroke-width="3" stroke-linecap="round"/><circle cx="32" cy="30" r="6" fill="rgba(255,122,0,.15)"/></svg>
+          </div>
+          <!-- Mascot -->
+          <div class="mascot-wrap" id="m0">
+            <svg width="110" height="154" viewBox="0 0 140 196" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="70" cy="193" rx="38" ry="4" fill="rgba(255,122,0,.12)"/>
+              <rect x="43" y="171" width="24" height="18" rx="9" fill="#FF7A00"/>
+              <rect x="73" y="171" width="24" height="18" rx="9" fill="#FF7A00"/>
+              <rect x="32" y="104" width="76" height="72" rx="22" fill="#111"/>
+              <rect x="32" y="104" width="76" height="72" rx="22" fill="none" stroke="rgba(255,122,0,.35)" stroke-width="1.5"/>
+              <path d="M54 104L70 122L86 104" fill="none" stroke="#FF7A00" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+              <circle cx="70" cy="138" r="5" fill="rgba(255,122,0,.2)" stroke="#FF7A00" stroke-width="1"/>
+              <circle cx="70" cy="138" r="2.5" fill="#FF7A00"/>
+              <!-- left arm thinking -->
+              <rect x="6" y="110" width="34" height="14" rx="7" fill="#111" stroke="rgba(255,122,0,.3)" stroke-width="1.2"/>
+              <!-- right arm thinking (bent to chin) -->
+              <g transform="rotate(-80,102,116)"><rect x="100" y="110" width="34" height="14" rx="7" fill="#111" stroke="rgba(255,122,0,.3)" stroke-width="1.2"/><circle cx="132" cy="117" r="6" fill="#FF7A00"/></g>
+              <rect x="20" y="12" width="100" height="96" rx="30" fill="#1a1a1a"/>
+              <clipPath id="hc0"><rect x="20" y="12" width="100" height="96" rx="30"/></clipPath>
+              <g clip-path="url(#hc0)"><rect x="20" y="12" width="100" height="26" fill="#FF7A00" opacity=".9"/><rect x="30" y="16" width="40" height="6" rx="3" fill="rgba(255,255,255,.2)"/></g>
+              <rect x="20" y="12" width="100" height="96" rx="30" fill="none" stroke="rgba(255,122,0,.2)" stroke-width="1.5"/>
+              <ellipse cx="50" cy="66" rx="18" ry="19" fill="white"/><ellipse cx="90" cy="66" rx="18" ry="19" fill="white"/>
+              <ellipse cx="50" cy="68" rx="12" ry="12" fill="#FF7A00"/><ellipse cx="90" cy="68" rx="12" ry="12" fill="#FF7A00"/>
+              <ellipse cx="48" cy="67" rx="5.5" ry="6.5" fill="#050505"/><ellipse cx="88" cy="67" rx="5.5" ry="6.5" fill="#050505"/>
+              <ellipse cx="55" cy="63" rx="2.5" ry="3" fill="rgba(255,255,255,.85)"/><ellipse cx="95" cy="63" rx="2.5" ry="3" fill="rgba(255,255,255,.85)"/>
+              <ellipse cx="33" cy="80" rx="8" ry="5" fill="rgba(255,122,0,.12)"/><ellipse cx="107" cy="80" rx="8" ry="5" fill="rgba(255,122,0,.12)"/>
+              <circle cx="70" cy="85" r="3.5" fill="rgba(255,122,0,.6)"/>
+              <path d="M50 91Q70 98 90 91" stroke="#FF7A00" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+              <line x1="70" y1="12" x2="70" y2="2" stroke="#FF7A00" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="70" cy="0" r="3.5" fill="#FF7A00"/>
+            </svg>
+          </div>
+        </div>
+        <h1 class="syne font-black text-white leading-none" style="font-size:clamp(2rem,7vw,4.2rem);letter-spacing:-.04em">
+          Precisa de um serviço<br/><span style="color:#FF7A00">e não sabe</span><br/>por onde começar?
+        </h1>
+      </div>
+    </div>
+
+    <!-- SLIDE 1 -->
+    <div class="slide" data-bg="rgba(255,122,0,.07)">
+      <div class="text-center max-w-2xl mx-auto px-4 flex flex-col items-center gap-8">
+        <span class="inline-flex items-center gap-2 text-xs font-black uppercase px-4 py-2 rounded-full syne" style="color:#FF7A00;background:rgba(255,122,0,.1);border:1px solid rgba(255,122,0,.2);letter-spacing:.25em"><span style="width:6px;height:6px;border-radius:50%;background:#FF7A00;display:inline-block"></span>Profissionais</span>
+        <div class="flex items-end gap-8 justify-center">
+          <div style="position:relative;width:120px;height:120px;display:flex;align-items:center;justify-content:center">
+            <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,rgba(255,122,0,.1) 0%,transparent 70%)"></div>
+            <div style="position:absolute;left:-20px;top:20px;width:24px;height:24px;border-radius:50%;border:2px solid #FF7A00;background:rgba(255,122,0,.1);display:flex;align-items:center;justify-content:center;animation:float 2s ease-in-out infinite"><div style="width:8px;height:8px;border-radius:50%;background:#FF7A00"></div></div>
+            <div style="position:absolute;right:4px;top:0;width:24px;height:24px;border-radius:50%;border:2px solid #FF7A00;background:rgba(255,122,0,.1);display:flex;align-items:center;justify-content:center;animation:float 2.4s ease-in-out infinite .3s"><div style="width:8px;height:8px;border-radius:50%;background:#FF7A00"></div></div>
+            <svg width="72" height="72" viewBox="0 0 72 72" fill="none"><circle cx="36" cy="36" r="35" stroke="rgba(255,122,0,.15)" stroke-width="2"/><path d="M36 16C28 16 22 22.3 22 30C22 40.5 36 56 36 56C36 56 50 40.5 50 30C50 22.3 44 16 36 16Z" stroke="#FF7A00" stroke-width="2.5" fill="rgba(255,122,0,.1)"/><circle cx="36" cy="30" r="6" fill="#FF7A00" opacity=".8"/><circle cx="36" cy="30" r="2.5" fill="white"/></svg>
+          </div>
+          <div class="mascot-wrap">
+            <svg width="110" height="154" viewBox="0 0 140 196" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="70" cy="193" rx="38" ry="4" fill="rgba(255,122,0,.12)"/>
+              <rect x="43" y="171" width="24" height="18" rx="9" fill="#FF7A00"/><rect x="73" y="171" width="24" height="18" rx="9" fill="#FF7A00"/>
+              <rect x="32" y="104" width="76" height="72" rx="22" fill="#111"/><rect x="32" y="104" width="76" height="72" rx="22" fill="none" stroke="rgba(255,122,0,.35)" stroke-width="1.5"/>
+              <path d="M54 104L70 122L86 104" fill="none" stroke="#FF7A00" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+              <circle cx="70" cy="138" r="5" fill="rgba(255,122,0,.2)" stroke="#FF7A00" stroke-width="1"/><circle cx="70" cy="138" r="2.5" fill="#FF7A00"/>
+              <rect x="6" y="110" width="34" height="14" rx="7" fill="#111" stroke="rgba(255,122,0,.3)" stroke-width="1.2"/>
+              <!-- right arm pointing -->
+              <g transform="rotate(-20,102,116) translate(10,-5)"><rect x="100" y="110" width="34" height="14" rx="7" fill="#111" stroke="rgba(255,122,0,.3)" stroke-width="1.2"/><circle cx="132" cy="117" r="6" fill="#FF7A00"/><rect x="134" y="114" width="14" height="6" rx="3" fill="#FF7A00"/></g>
+              <rect x="20" y="12" width="100" height="96" rx="30" fill="#1a1a1a"/>
+              <clipPath id="hc1"><rect x="20" y="12" width="100" height="96" rx="30"/></clipPath>
+              <g clip-path="url(#hc1)"><rect x="20" y="12" width="100" height="26" fill="#FF7A00" opacity=".9"/><rect x="30" y="16" width="40" height="6" rx="3" fill="rgba(255,255,255,.2)"/></g>
+              <rect x="20" y="12" width="100" height="96" rx="30" fill="none" stroke="rgba(255,122,0,.2)" stroke-width="1.5"/>
+              <ellipse cx="50" cy="66" rx="18" ry="19" fill="white"/><ellipse cx="90" cy="66" rx="18" ry="19" fill="white"/>
+              <ellipse cx="50" cy="68" rx="12" ry="12" fill="#FF7A00"/><ellipse cx="90" cy="68" rx="12" ry="12" fill="#FF7A00"/>
+              <ellipse cx="54" cy="67" rx="5.5" ry="6.5" fill="#050505"/><ellipse cx="94" cy="67" rx="5.5" ry="6.5" fill="#050505"/>
+              <ellipse cx="55" cy="63" rx="2.5" ry="3" fill="rgba(255,255,255,.85)"/><ellipse cx="95" cy="63" rx="2.5" ry="3" fill="rgba(255,255,255,.85)"/>
+              <ellipse cx="33" cy="80" rx="8" ry="5" fill="rgba(255,122,0,.12)"/><ellipse cx="107" cy="80" rx="8" ry="5" fill="rgba(255,122,0,.12)"/>
+              <circle cx="70" cy="85" r="3.5" fill="rgba(255,122,0,.6)"/>
+              <path d="M50 91Q70 102 90 91" stroke="#FF7A00" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+              <line x1="70" y1="12" x2="70" y2="2" stroke="#FF7A00" stroke-width="2" stroke-linecap="round"/><circle cx="70" cy="0" r="3.5" fill="#FF7A00"/>
+            </svg>
+          </div>
+        </div>
+        <h1 class="syne font-black text-white leading-none" style="font-size:clamp(2rem,7vw,4.2rem);letter-spacing:-.04em">
+          Encontre profissionais<br/><span style="color:#FF7A00">perto</span><br/>de você
+        </h1>
+      </div>
+    </div>
+
+    <!-- SLIDE 2 -->
+    <div class="slide" data-bg="rgba(34,197,94,.04)">
+      <div class="text-center max-w-2xl mx-auto px-4 flex flex-col items-center gap-8">
+        <span class="inline-flex items-center gap-2 text-xs font-black uppercase px-4 py-2 rounded-full syne" style="color:#FF7A00;background:rgba(255,122,0,.1);border:1px solid rgba(255,122,0,.2);letter-spacing:.25em"><span style="width:6px;height:6px;border-radius:50%;background:#FF7A00;display:inline-block"></span>Marketplace</span>
+        <div class="flex items-end gap-8 justify-center">
+          <div style="position:relative;width:120px;height:120px;display:flex;align-items:center;justify-content:center">
+            <svg width="72" height="72" viewBox="0 0 72 72" fill="none"><circle cx="36" cy="36" r="35" stroke="rgba(255,122,0,.15)" stroke-width="2"/><rect x="16" y="30" width="40" height="28" rx="6" stroke="#FF7A00" stroke-width="2.5"/><path d="M26 30L26 24Q26 16 36 16Q46 16 46 24L46 30" stroke="#FF7A00" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="36" cy="37" r="3" fill="rgba(255,122,0,.3)" stroke="#FF7A00" stroke-width="1.5"/></svg>
+          </div>
+          <div class="mascot-wrap">
+            <svg width="110" height="154" viewBox="0 0 140 196" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="70" cy="193" rx="38" ry="4" fill="rgba(255,122,0,.12)"/>
+              <rect x="43" y="171" width="24" height="18" rx="9" fill="#FF7A00"/><rect x="73" y="171" width="24" height="18" rx="9" fill="#FF7A00"/>
+              <rect x="32" y="104" width="76" height="72" rx="22" fill="#111"/><rect x="32" y="104" width="76" height="72" rx="22" fill="none" stroke="rgba(255,122,0,.35)" stroke-width="1.5"/>
+              <path d="M54 104L70 122L86 104" fill="none" stroke="#FF7A00" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+              <g transform="rotate(-30,38,117)"><rect x="6" y="110" width="34" height="14" rx="7" fill="#111" stroke="rgba(255,122,0,.3)" stroke-width="1.2"/><circle cx="8" cy="117" r="6" fill="#1a1a1a" stroke="rgba(255,122,0,.2)" stroke-width="1"/></g>
+              <g transform="rotate(30,102,116)"><rect x="100" y="110" width="34" height="14" rx="7" fill="#111" stroke="rgba(255,122,0,.3)" stroke-width="1.2"/><circle cx="132" cy="117" r="6" fill="#FF7A00"/></g>
+              <rect x="20" y="12" width="100" height="96" rx="30" fill="#1a1a1a"/>
+              <clipPath id="hc2"><rect x="20" y="12" width="100" height="96" rx="30"/></clipPath>
+              <g clip-path="url(#hc2)"><rect x="20" y="12" width="100" height="26" fill="#FF7A00" opacity=".9"/><rect x="30" y="16" width="40" height="6" rx="3" fill="rgba(255,255,255,.2)"/></g>
+              <rect x="20" y="12" width="100" height="96" rx="30" fill="none" stroke="rgba(255,122,0,.2)" stroke-width="1.5"/>
+              <ellipse cx="50" cy="66" rx="18" ry="19" fill="white"/><ellipse cx="90" cy="66" rx="18" ry="19" fill="white"/>
+              <ellipse cx="50" cy="68" rx="12" ry="12" fill="#FF7A00"/><ellipse cx="90" cy="68" rx="12" ry="12" fill="#FF7A00"/>
+              <ellipse cx="52" cy="67" rx="5.5" ry="6.5" fill="#050505"/><ellipse cx="92" cy="67" rx="5.5" ry="6.5" fill="#050505"/>
+              <ellipse cx="55" cy="63" rx="2.5" ry="3" fill="rgba(255,255,255,.85)"/><ellipse cx="95" cy="63" rx="2.5" ry="3" fill="rgba(255,255,255,.85)"/>
+              <ellipse cx="33" cy="80" rx="8" ry="5" fill="rgba(255,122,0,.12)"/><ellipse cx="107" cy="80" rx="8" ry="5" fill="rgba(255,122,0,.12)"/>
+              <circle cx="70" cy="85" r="3.5" fill="rgba(255,122,0,.6)"/>
+              <path d="M48 91Q70 106 92 91" stroke="#FF7A00" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+              <line x1="70" y1="12" x2="70" y2="2" stroke="#FF7A00" stroke-width="2" stroke-linecap="round"/><circle cx="70" cy="0" r="3.5" fill="#FF7A00"/>
+            </svg>
+          </div>
+        </div>
+        <h1 class="syne font-black text-white leading-none" style="font-size:clamp(2rem,7vw,4.2rem);letter-spacing:-.04em">
+          Compre<br/><span style="color:#FF7A00">produtos locais</span>
+        </h1>
+      </div>
+    </div>
+
+    <!-- SLIDE 3 -->
+    <div class="slide" data-bg="rgba(139,92,246,.04)">
+      <div class="text-center max-w-2xl mx-auto px-4 flex flex-col items-center gap-8">
+        <span class="inline-flex items-center gap-2 text-xs font-black uppercase px-4 py-2 rounded-full syne" style="color:#FF7A00;background:rgba(255,122,0,.1);border:1px solid rgba(255,122,0,.2);letter-spacing:.25em"><span style="width:6px;height:6px;border-radius:50%;background:#FF7A00;display:inline-block"></span>Agendamento</span>
+        <div class="flex items-end gap-8 justify-center">
+          <div style="position:relative;width:120px;height:120px;display:flex;align-items:center;justify-content:center">
+            <div style="position:absolute;top:-10px;right:0;font-size:.7rem;font-weight:900;padding:4px 8px;border-radius:8px;background:rgba(255,122,0,.15);border:1px solid rgba(255,122,0,.3);color:#FF7A00;font-family:Syne,sans-serif;animation:float 1.5s ease-in-out infinite">14:00 ✓</div>
+            <svg width="72" height="72" viewBox="0 0 72 72" fill="none"><circle cx="36" cy="36" r="35" stroke="rgba(255,122,0,.15)" stroke-width="2"/><rect x="14" y="20" width="44" height="38" rx="6" stroke="#FF7A00" stroke-width="2.5"/><line x1="14" y1="31" x2="58" y2="31" stroke="#FF7A00" stroke-width="2"/><line x1="24" y1="14" x2="24" y2="26" stroke="#FF7A00" stroke-width="3" stroke-linecap="round"/><line x1="48" y1="14" x2="48" y2="26" stroke="#FF7A00" stroke-width="3" stroke-linecap="round"/><rect x="22" y="38" width="8" height="8" rx="2" fill="rgba(255,122,0,.3)" stroke="#FF7A00" stroke-width="1"/><rect x="36" y="38" width="8" height="8" rx="2" fill="#FF7A00" opacity=".6"/></svg>
+          </div>
+          <div class="mascot-wrap">
+            <svg width="110" height="154" viewBox="0 0 140 196" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="70" cy="193" rx="38" ry="4" fill="rgba(255,122,0,.12)"/>
+              <rect x="43" y="171" width="24" height="18" rx="9" fill="#FF7A00"/><rect x="73" y="171" width="24" height="18" rx="9" fill="#FF7A00"/>
+              <rect x="32" y="104" width="76" height="72" rx="22" fill="#111"/><rect x="32" y="104" width="76" height="72" rx="22" fill="none" stroke="rgba(255,122,0,.35)" stroke-width="1.5"/>
+              <path d="M54 104L70 122L86 104" fill="none" stroke="#FF7A00" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+              <g transform="rotate(40,38,117) translate(-4,-10)"><rect x="6" y="110" width="34" height="14" rx="7" fill="#111" stroke="rgba(255,122,0,.3)" stroke-width="1.2"/></g>
+              <g transform="rotate(-40,102,116) translate(4,-10)"><rect x="100" y="110" width="34" height="14" rx="7" fill="#111" stroke="rgba(255,122,0,.3)" stroke-width="1.2"/><circle cx="132" cy="117" r="6" fill="#FF7A00"/></g>
+              <rect x="20" y="12" width="100" height="96" rx="30" fill="#1a1a1a"/>
+              <clipPath id="hc3"><rect x="20" y="12" width="100" height="96" rx="30"/></clipPath>
+              <g clip-path="url(#hc3)"><rect x="20" y="12" width="100" height="26" fill="#FF7A00" opacity=".9"/><rect x="30" y="16" width="40" height="6" rx="3" fill="rgba(255,255,255,.2)"/></g>
+              <rect x="20" y="12" width="100" height="96" rx="30" fill="none" stroke="rgba(255,122,0,.2)" stroke-width="1.5"/>
+              <ellipse cx="50" cy="66" rx="18" ry="19" fill="white"/><ellipse cx="90" cy="66" rx="18" ry="19" fill="white"/>
+              <ellipse cx="50" cy="68" rx="12" ry="12" fill="#FF7A00"/><ellipse cx="90" cy="68" rx="12" ry="12" fill="#FF7A00"/>
+              <ellipse cx="52" cy="67" rx="5.5" ry="6.5" fill="#050505"/><ellipse cx="92" cy="67" rx="5.5" ry="6.5" fill="#050505"/>
+              <ellipse cx="55" cy="63" rx="2.5" ry="3" fill="rgba(255,255,255,.85)"/><ellipse cx="95" cy="63" rx="2.5" ry="3" fill="rgba(255,255,255,.85)"/>
+              <ellipse cx="33" cy="80" rx="8" ry="5" fill="rgba(255,122,0,.12)"/><ellipse cx="107" cy="80" rx="8" ry="5" fill="rgba(255,122,0,.12)"/>
+              <circle cx="70" cy="85" r="3.5" fill="rgba(255,122,0,.6)"/>
+              <path d="M50 91Q70 102 90 91" stroke="#FF7A00" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+              <line x1="70" y1="12" x2="70" y2="2" stroke="#FF7A00" stroke-width="2" stroke-linecap="round"/><circle cx="70" cy="0" r="3.5" fill="#FF7A00"/>
+            </svg>
+          </div>
+        </div>
+        <h1 class="syne font-black text-white leading-none" style="font-size:clamp(2rem,7vw,4.2rem);letter-spacing:-.04em">
+          Agende serviços<br/><span style="color:#FF7A00">em segundos</span>
+        </h1>
+      </div>
+    </div>
+
+    <!-- SLIDE 4 SOS -->
+    <div class="slide" data-bg="rgba(239,68,68,.06)">
+      <div class="text-center max-w-2xl mx-auto px-4 flex flex-col items-center gap-8">
+        <span class="inline-flex items-center gap-2 text-xs font-black uppercase px-4 py-2 rounded-full syne" style="color:#FF7A00;background:rgba(255,122,0,.1);border:1px solid rgba(255,122,0,.2);letter-spacing:.25em"><span style="width:6px;height:6px;border-radius:50%;background:#FF7A00;display:inline-block;animation:ping 1s ease-out infinite"></span>Emergência</span>
+        <div class="flex items-end gap-8 justify-center">
+          <div style="position:relative;width:120px;height:120px;display:flex;align-items:center;justify-content:center">
+            <div style="position:absolute;inset:0;border-radius:50%;border:1px solid rgba(255,80,0,.3);animation:ping 1.5s ease-out infinite"></div>
+            <div style="position:absolute;inset:10px;border-radius:50%;border:1px solid rgba(255,80,0,.2);animation:ping 1.5s ease-out infinite .4s"></div>
+            <svg width="72" height="72" viewBox="0 0 72 72" fill="none"><circle cx="36" cy="36" r="35" stroke="rgba(255,80,0,.25)" stroke-width="2"/><path d="M36 18L36 38" stroke="#FF7A00" stroke-width="4" stroke-linecap="round"/><circle cx="36" cy="48" r="3.5" fill="#FF7A00"/></svg>
+          </div>
+          <div class="mascot-wrap">
+            <svg width="110" height="154" viewBox="0 0 140 196" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="70" cy="193" rx="38" ry="4" fill="rgba(255,122,0,.12)"/>
+              <rect x="43" y="171" width="24" height="18" rx="9" fill="#FF7A00"/><rect x="73" y="171" width="24" height="18" rx="9" fill="#FF7A00"/>
+              <rect x="32" y="104" width="76" height="72" rx="22" fill="#111"/><rect x="32" y="104" width="76" height="72" rx="22" fill="none" stroke="rgba(255,122,0,.35)" stroke-width="1.5"/>
+              <path d="M54 104L70 122L86 104" fill="none" stroke="#FF7A00" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+              <g transform="rotate(120,38,117) translate(-2,-24)"><rect x="6" y="110" width="34" height="14" rx="7" fill="#111" stroke="rgba(255,122,0,.3)" stroke-width="1.2"/></g>
+              <g transform="rotate(-120,102,116) translate(2,-24)"><rect x="100" y="110" width="34" height="14" rx="7" fill="#111" stroke="rgba(255,122,0,.3)" stroke-width="1.2"/><circle cx="132" cy="117" r="6" fill="#FF7A00"/></g>
+              <rect x="20" y="12" width="100" height="96" rx="30" fill="#1a1a1a"/>
+              <clipPath id="hc4"><rect x="20" y="12" width="100" height="96" rx="30"/></clipPath>
+              <g clip-path="url(#hc4)"><rect x="20" y="12" width="100" height="26" fill="#FF7A00" opacity=".9"/><rect x="30" y="16" width="40" height="6" rx="3" fill="rgba(255,255,255,.2)"/></g>
+              <rect x="20" y="12" width="100" height="96" rx="30" fill="none" stroke="rgba(255,122,0,.2)" stroke-width="1.5"/>
+              <ellipse cx="50" cy="62" rx="20" ry="22" fill="white"/><ellipse cx="90" cy="62" rx="20" ry="22" fill="white"/>
+              <ellipse cx="50" cy="64" rx="13" ry="13" fill="#FF7A00"/><ellipse cx="90" cy="64" rx="13" ry="13" fill="#FF7A00"/>
+              <ellipse cx="52" cy="63" rx="6" ry="7" fill="#050505"/><ellipse cx="92" cy="63" rx="6" ry="7" fill="#050505"/>
+              <ellipse cx="55" cy="59" rx="2.5" ry="3" fill="rgba(255,255,255,.85)"/><ellipse cx="95" cy="59" rx="2.5" ry="3" fill="rgba(255,255,255,.85)"/>
+              <ellipse cx="33" cy="80" rx="8" ry="5" fill="rgba(255,122,0,.12)"/><ellipse cx="107" cy="80" rx="8" ry="5" fill="rgba(255,122,0,.12)"/>
+              <circle cx="70" cy="85" r="3.5" fill="rgba(255,122,0,.6)"/>
+              <path d="M55 95Q70 88 85 95" stroke="#FF7A00" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+              <line x1="70" y1="12" x2="70" y2="2" stroke="#FF7A00" stroke-width="2" stroke-linecap="round"/><circle cx="70" cy="0" r="3.5" fill="#FF7A00"/>
+            </svg>
+          </div>
+        </div>
+        <h1 class="syne font-black text-white leading-none" style="font-size:clamp(2rem,7vw,4.2rem);letter-spacing:-.04em">
+          Precisa urgente?<br/><span style="color:#FF7A00">Resolva</span><br/>na hora
+        </h1>
+      </div>
+    </div>
+
+    <!-- SLIDE 5 LOGO -->
+    <div class="slide" data-bg="rgba(255,122,0,.10)">
+      <div class="text-center max-w-2xl mx-auto px-4 flex flex-col items-center gap-8">
+        <span class="inline-flex items-center gap-2 text-xs font-black uppercase px-4 py-2 rounded-full syne" style="color:#FF7A00;background:rgba(255,122,0,.1);border:1px solid rgba(255,122,0,.2);letter-spacing:.25em"><span style="width:6px;height:6px;border-radius:50%;background:#FF7A00;display:inline-block"></span>Facilita Aí</span>
+        <div class="flex flex-col items-center gap-6">
+          <div style="width:96px;height:96px;background:#FF7A00;border-radius:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 80px rgba(255,122,0,.6),0 0 160px rgba(255,122,0,.2);animation:pulse 2s ease-in-out infinite">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          </div>
+          <div class="flex items-end justify-center gap-4">
+            <div class="mascot-wrap">
+              <svg width="110" height="154" viewBox="0 0 140 196" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="70" cy="193" rx="38" ry="4" fill="rgba(255,122,0,.12)"/>
+                <rect x="43" y="171" width="24" height="18" rx="9" fill="#FF7A00"/><rect x="73" y="171" width="24" height="18" rx="9" fill="#FF7A00"/>
+                <rect x="32" y="104" width="76" height="72" rx="22" fill="#111"/><rect x="32" y="104" width="76" height="72" rx="22" fill="none" stroke="rgba(255,122,0,.35)" stroke-width="1.5"/>
+                <path d="M54 104L70 122L86 104" fill="none" stroke="#FF7A00" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+                <g transform="rotate(70,38,117) translate(-4,-20)"><rect x="6" y="110" width="34" height="14" rx="7" fill="#111" stroke="rgba(255,122,0,.3)" stroke-width="1.2"/></g>
+                <g transform="rotate(-70,102,116) translate(4,-20)"><rect x="100" y="110" width="34" height="14" rx="7" fill="#111" stroke="rgba(255,122,0,.3)" stroke-width="1.2"/><circle cx="132" cy="117" r="6" fill="#FF7A00"/></g>
+                <rect x="20" y="12" width="100" height="96" rx="30" fill="#1a1a1a"/>
+                <clipPath id="hc5"><rect x="20" y="12" width="100" height="96" rx="30"/></clipPath>
+                <g clip-path="url(#hc5)"><rect x="20" y="12" width="100" height="26" fill="#FF7A00" opacity=".9"/><rect x="30" y="16" width="40" height="6" rx="3" fill="rgba(255,255,255,.2)"/></g>
+                <rect x="20" y="12" width="100" height="96" rx="30" fill="none" stroke="rgba(255,122,0,.2)" stroke-width="1.5"/>
+                <ellipse cx="50" cy="66" rx="18" ry="19" fill="white"/><ellipse cx="90" cy="66" rx="18" ry="19" fill="white"/>
+                <ellipse cx="50" cy="68" rx="12" ry="12" fill="#FF7A00"/><ellipse cx="90" cy="68" rx="12" ry="12" fill="#FF7A00"/>
+                <ellipse cx="52" cy="67" rx="5.5" ry="6.5" fill="#050505"/><ellipse cx="92" cy="67" rx="5.5" ry="6.5" fill="#050505"/>
+                <ellipse cx="55" cy="63" rx="2.5" ry="3" fill="rgba(255,255,255,.85)"/><ellipse cx="95" cy="63" rx="2.5" ry="3" fill="rgba(255,255,255,.85)"/>
+                <ellipse cx="33" cy="80" rx="8" ry="5" fill="rgba(255,122,0,.12)"/><ellipse cx="107" cy="80" rx="8" ry="5" fill="rgba(255,122,0,.12)"/>
+                <circle cx="70" cy="85" r="3.5" fill="rgba(255,122,0,.6)"/>
+                <path d="M48 91Q70 106 92 91" stroke="#FF7A00" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                <line x1="70" y1="12" x2="70" y2="2" stroke="#FF7A00" stroke-width="2" stroke-linecap="round"/><circle cx="70" cy="0" r="3.5" fill="#FF7A00"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <h1 class="syne font-black text-white leading-none" style="font-size:clamp(2rem,7vw,4.2rem);letter-spacing:-.04em">
+          Tudo em<br/><span style="color:#FF7A00">um só lugar</span>
+        </h1>
+        <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:340px">
+          <a href="/" class="btn-og px-8 py-4 rounded-2xl text-sm no-underline flex items-center justify-center gap-2" style="font-size:.75rem">⚡ Explorar o app</a>
+          <a href="#como-funciona" class="btn-ghost px-8 py-4 rounded-2xl text-sm no-underline text-center" style="font-size:.75rem">Saiba mais ↓</a>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /slides -->
+
+  <!-- Progress + dots -->
+  <div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding-bottom:40px">
+    <div style="width:160px;height:2px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden">
+      <div id="prog-bar" class="progress-anim" style="height:100%;background:#FF7A00;width:0%;border-radius:99px"></div>
+    </div>
+    <div id="dots" style="display:flex;gap:8px"></div>
+  </div>
+</section>
+
+<!-- COMO FUNCIONA -->
+<section id="como-funciona" style="padding:6rem 1.5rem;max-width:72rem;margin:0 auto">
+  <div class="reveal text-center" style="margin-bottom:4rem">
+    <span class="inline-flex items-center gap-2 text-xs font-black uppercase px-4 py-2 rounded-full syne" style="color:#FF7A00;background:rgba(255,122,0,.08);border:1px solid rgba(255,122,0,.18);letter-spacing:.25em"><span style="width:6px;height:6px;border-radius:50%;background:#FF7A00;display:inline-block"></span>Como funciona</span>
+    <h2 class="syne font-black text-white" style="font-size:clamp(2rem,5vw,3.5rem);letter-spacing:-.04em;line-height:1;margin-top:1rem">Simples assim.<br/><span style="color:#FF7A00">3 passos</span> e resolvido.</h2>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.5rem">
+    <div class="feat-card reveal" style="transition-delay:.1s">
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.25rem">
+        <div class="syne font-black" style="width:48px;height:48px;border-radius:16px;background:rgba(255,122,0,.12);border:1px solid rgba(255,122,0,.25);color:#FF7A00;font-size:1.1rem;display:flex;align-items:center;justify-content:center">01</div>
+      </div>
+      <h3 class="syne font-black text-white" style="font-size:1.2rem;letter-spacing:-.02em;margin-bottom:.5rem">Busque o que precisa</h3>
+      <p style="color:rgba(255,255,255,.4);font-size:.875rem;line-height:1.65">Procure profissionais por categoria, nome ou localização. Filtre por avaliação e disponibilidade.</p>
+    </div>
+    <div class="feat-card reveal" style="transition-delay:.2s">
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.25rem">
+        <div class="syne font-black" style="width:48px;height:48px;border-radius:16px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.25);color:#3b82f6;font-size:1.1rem;display:flex;align-items:center;justify-content:center">02</div>
+      </div>
+      <h3 class="syne font-black text-white" style="font-size:1.2rem;letter-spacing:-.02em;margin-bottom:.5rem">Contrate e agende</h3>
+      <p style="color:rgba(255,255,255,.4);font-size:.875rem;line-height:1.65">Converse direto pelo chat, receba propostas e confirme o serviço em poucos segundos.</p>
+    </div>
+    <div class="feat-card reveal" style="transition-delay:.3s">
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.25rem">
+        <div class="syne font-black" style="width:48px;height:48px;border-radius:16px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25);color:#22c55e;font-size:1.1rem;display:flex;align-items:center;justify-content:center">03</div>
+      </div>
+      <h3 class="syne font-black text-white" style="font-size:1.2rem;letter-spacing:-.02em;margin-bottom:.5rem">Problema resolvido</h3>
+      <p style="color:rgba(255,255,255,.4);font-size:.875rem;line-height:1.65">Acompanhe o andamento, avalie o profissional e construa um histórico de confiança.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FUNCIONALIDADES -->
+<section id="funcionalidades" style="padding:6rem 1.5rem;max-width:72rem;margin:0 auto">
+  <div class="reveal text-center" style="margin-bottom:4rem">
+    <span class="inline-flex items-center gap-2 text-xs font-black uppercase px-4 py-2 rounded-full syne" style="color:#FF7A00;background:rgba(255,122,0,.08);border:1px solid rgba(255,122,0,.18);letter-spacing:.25em"><span style="width:6px;height:6px;border-radius:50%;background:#FF7A00;display:inline-block"></span>Funcionalidades</span>
+    <h2 class="syne font-black text-white" style="font-size:clamp(2rem,5vw,3.5rem);letter-spacing:-.04em;line-height:1;margin-top:1rem">Tudo que você precisa,<br/><span style="color:#FF7A00">em um só lugar.</span></h2>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem">
+    <div class="feat-card reveal" style="grid-column:span 2;transition-delay:.05s">
+      <div style="width:44px;height:44px;border-radius:14px;background:rgba(255,122,0,.12);border:1px solid rgba(255,122,0,.25);display:flex;align-items:center;justify-content:center;margin-bottom:1rem">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF7A00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </div>
+      <h3 class="syne font-black text-white" style="font-size:1.1rem;letter-spacing:-.02em;margin-bottom:.5rem">Encontre profissionais</h3>
+      <p style="color:rgba(255,255,255,.4);font-size:.875rem;line-height:1.65">Eletricistas, cabeleireiros, personal trainers e +50 categorias. Tudo perto de você.</p>
+    </div>
+    <div class="feat-card reveal" style="transition-delay:.1s">
+      <div style="width:44px;height:44px;border-radius:14px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.25);display:flex;align-items:center;justify-content:center;margin-bottom:1rem">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      </div>
+      <h3 class="syne font-black text-white" style="font-size:1.1rem;letter-spacing:-.02em;margin-bottom:.5rem">Marketplace local</h3>
+      <p style="color:rgba(255,255,255,.4);font-size:.875rem;line-height:1.65">Profissionais vendem produtos diretamente. Compre com quem entende.</p>
+    </div>
+    <div class="feat-card reveal" style="transition-delay:.15s">
+      <div style="width:44px;height:44px;border-radius:14px;background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.25);display:flex;align-items:center;justify-content:center;margin-bottom:1rem">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+      <h3 class="syne font-black text-white" style="font-size:1.1rem;letter-spacing:-.02em;margin-bottom:.5rem">Agendamento inteligente</h3>
+      <p style="color:rgba(255,255,255,.4);font-size:.875rem;line-height:1.65">Horários em tempo real. Confirmação instantânea.</p>
+    </div>
+    <div class="feat-card reveal" style="transition-delay:.2s">
+      <div style="width:44px;height:44px;border-radius:14px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);display:flex;align-items:center;justify-content:center;margin-bottom:1rem">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <h3 class="syne font-black text-white" style="font-size:1.1rem;letter-spacing:-.02em;margin-bottom:.5rem">Acesso SOS</h3>
+      <p style="color:rgba(255,255,255,.4);font-size:.875rem;line-height:1.65">SAMU, Bombeiros e Polícia em um toque.</p>
+    </div>
+    <div class="feat-card reveal" style="grid-column:span 2;transition-delay:.25s">
+      <div style="width:44px;height:44px;border-radius:14px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25);display:flex;align-items:center;justify-content:center;margin-bottom:1rem">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      </div>
+      <h3 class="syne font-black text-white" style="font-size:1.1rem;letter-spacing:-.02em;margin-bottom:.5rem">Por perto de você</h3>
+      <p style="color:rgba(255,255,255,.4);font-size:.875rem;line-height:1.65">Geolocalização precisa. Veja o profissional no mapa e a distância em tempo real.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PARA PROFISSIONAIS -->
+<section id="profissionais" style="padding:6rem 1.5rem;position:relative;overflow:hidden;background:linear-gradient(135deg,#080400 0%,#050505 60%,#0a0500 100%)">
+  <div style="position:absolute;left:0;top:0;bottom:0;width:1px;background:linear-gradient(to bottom,transparent,rgba(255,122,0,.3),transparent)"></div>
+  <div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(to right,transparent,rgba(255,122,0,.15),transparent)"></div>
+  <div style="max-width:72rem;margin:0 auto">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center" class="reveal">
+      <div>
+        <span class="inline-flex items-center gap-2 text-xs font-black uppercase px-4 py-2 rounded-full syne" style="color:#FF7A00;background:rgba(255,122,0,.08);border:1px solid rgba(255,122,0,.18);letter-spacing:.25em;margin-bottom:1rem;display:inline-flex"><span style="width:6px;height:6px;border-radius:50%;background:#FF7A00;display:inline-block"></span>Para profissionais</span>
+        <h2 class="syne font-black text-white" style="font-size:clamp(2rem,4vw,3rem);letter-spacing:-.04em;line-height:1;margin-bottom:1.5rem">Você presta serviço<br/>e quer <span style="color:#FF7A00">mais clientes?</span></h2>
+        <p style="color:rgba(255,255,255,.4);font-size:.9rem;line-height:1.7;margin-bottom:2rem;max-width:380px">Cadastre seu perfil, escolha seu plano e comece a receber pedidos hoje mesmo. Mais de 50 categorias disponíveis.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <a href="/" class="btn-og px-7 py-4 rounded-2xl text-xs no-underline flex items-center gap-2">Quero ser profissional →</a>
+          <button class="btn-ghost px-7 py-4 rounded-2xl text-xs">Ver os planos</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="feat-card" style="background:rgba(255,255,255,.03)"><p style="color:rgba(255,255,255,.5);font-size:.8rem;line-height:1.5">📈 Receba novos clientes todo dia</p></div>
+        <div class="feat-card" style="background:rgba(255,255,255,.03)"><p style="color:rgba(255,255,255,.5);font-size:.8rem;line-height:1.5">👥 Gerencie sua fila de atendimento</p></div>
+        <div class="feat-card" style="background:rgba(255,255,255,.03)"><p style="color:rgba(255,255,255,.5);font-size:.8rem;line-height:1.5">⭐ Construa reputação com avaliações</p></div>
+        <div class="feat-card" style="background:rgba(255,255,255,.03)"><p style="color:rgba(255,255,255,.5);font-size:.8rem;line-height:1.5">🛍️ Venda produtos pelo marketplace</p></div>
+        <div class="feat-card" style="background:rgba(255,255,255,.03)"><p style="color:rgba(255,255,255,.5);font-size:.8rem;line-height:1.5">🛡️ Perfil verificado com selo</p></div>
+        <div class="feat-card" style="background:rgba(255,255,255,.03)"><p style="color:rgba(255,255,255,.5);font-size:.8rem;line-height:1.5">⚡ Destaque nas buscas com Ultra</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<section style="padding:8rem 1.5rem;text-align:center;position:relative;overflow:hidden">
+  <div style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 70% 60% at 50% 50%,rgba(255,122,0,.07) 0%,transparent 70%)"></div>
+  <div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(to right,transparent,rgba(255,122,0,.2),transparent)"></div>
+  <div class="reveal" style="position:relative;max-width:48rem;margin:0 auto">
+    <div style="width:72px;height:72px;background:#FF7A00;border-radius:22px;display:flex;align-items:center;justify-content:center;margin:0 auto 2rem;box-shadow:0 0 80px rgba(255,122,0,.4);animation:pulse 3s ease-in-out infinite">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+    </div>
+    <h2 class="syne font-black text-white" style="font-size:clamp(2.5rem,8vw,5rem);letter-spacing:-.05em;line-height:.95;margin-bottom:1.5rem">Comece a aparecer<br/><span style="color:#FF7A00">hoje.</span></h2>
+    <p style="color:rgba(255,255,255,.4);font-size:.95rem;line-height:1.7;max-width:440px;margin:0 auto 2.5rem">Milhares de pessoas procurando serviços perto delas. Esteja visível para elas agora.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <a href="/" class="btn-og px-10 py-4 rounded-2xl text-sm no-underline">Entrar no Facilita Aí</a>
+      <a href="#profissionais" class="btn-ghost px-10 py-4 rounded-2xl text-sm no-underline">Sou profissional</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer style="border-top:1px solid rgba(255,255,255,.06);padding:3rem 1.5rem;background:#030303">
+  <div style="max-width:72rem;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:2rem">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:40px;height:40px;background:#FF7A00;border-radius:14px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px rgba(255,122,0,.35)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+      </div>
+      <div>
+        <div class="syne font-black text-white" style="font-size:1.1rem;letter-spacing:-.02em">Facilita<span style="color:#FF7A00">Aí</span></div>
+        <div style="color:rgba(255,255,255,.3);font-size:.65rem;text-transform:uppercase;letter-spacing:.2em">A plataforma que resolve</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:1.5rem;font-size:.875rem;color:rgba(255,255,255,.4)">
+      <a href="#" style="text-decoration:none;color:inherit;transition:color .2s" onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255,255,255,.4)'">Termos</a>
+      <a href="#" style="text-decoration:none;color:inherit;transition:color .2s" onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255,255,255,.4)'">Privacidade</a>
+      <a href="#" style="text-decoration:none;color:inherit;transition:color .2s" onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255,255,255,.4)'">Suporte</a>
+    </div>
+    <p style="color:rgba(255,255,255,.2);font-size:.75rem">© 2025 Facilita Aí • Feito com <span style="color:#FF7A00">♥</span> no Brasil</p>
+  </div>
+</footer>
+
+<script>
+// ── Nav scroll ──
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => {
+  if(window.scrollY > 40) nav.classList.add('nav-glass');
+  else nav.classList.remove('nav-glass');
+},{passive:true});
+
+// ── Slider ──
+const slides = document.querySelectorAll('.slide');
+const dotsEl = document.getElementById('dots');
+let cur = 0, timer, paused = false;
+const DURATION = 5000;
+
+// Build dots
+slides.forEach((_, i) => {
+  const d = document.createElement('button');
+  d.style.cssText = `height:6px;border-radius:99px;border:none;cursor:pointer;background:rgba(255,255,255,.2);transition:all .3s;padding:0`;
+  d.style.width = i===0?'24px':'6px';
+  d.style.background = i===0?'#FF7A00':'rgba(255,255,255,.2)';
+  d.onclick = () => goTo(i);
+  dotsEl.appendChild(d);
+});
+
+function updateDots(){
+  dotsEl.querySelectorAll('button').forEach((d,i)=>{
+    d.style.width = i===cur?'24px':'6px';
+    d.style.background = i===cur?'#FF7A00':'rgba(255,255,255,.2)';
+  });
+}
+
+function goTo(n){
+  slides[cur].classList.remove('active');
+  slides[cur].classList.add('exit');
+  const prevCur = cur;
+  setTimeout(()=>slides[prevCur].classList.remove('exit'), 700);
+  cur = (n+slides.length)%slides.length;
+  slides[cur].classList.add('active');
+  updateDots();
+  // hero bg
+  const bg = slides[cur].dataset.bg;
+  document.getElementById('hero').style.background = `radial-gradient(ellipse 90% 60% at 50% 0%,${bg} 0%,transparent 65%),#050505`;
+  // progress bar
+  const pb = document.getElementById('prog-bar');
+  pb.style.animation='none';
+  pb.offsetHeight; // reflow
+  pb.style.animation=`prog ${DURATION/1000}s linear forwards`;
+  clearTimeout(timer);
+  if(!paused) timer = setTimeout(()=>goTo(cur+1), DURATION);
+}
+
+// Pause on hover
+document.getElementById('hero').addEventListener('mouseenter',()=>{paused=true;clearTimeout(timer)});
+document.getElementById('hero').addEventListener('mouseleave',()=>{paused=false;timer=setTimeout(()=>goTo(cur+1),DURATION)});
+
+// Start
+timer = setTimeout(()=>goTo(1), DURATION);
+
+// ── Reveal on scroll ──
+const revealEls = document.querySelectorAll('.reveal');
+const obs = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('revealed'); });
+},{threshold:.15});
+revealEls.forEach(el=>obs.observe(el));
+
+// ── Smooth scroll links ──
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+  a.addEventListener('click',e=>{
+    e.preventDefault();
+    const t = document.querySelector(a.getAttribute('href'));
+    if(t) t.scrollIntoView({behavior:'smooth'});
+  });
+});
+</script>
+</body>
+</html>

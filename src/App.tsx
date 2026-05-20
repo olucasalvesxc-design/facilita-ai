@@ -58,6 +58,7 @@ const CompletionModal   = React.lazy(() => import('./components/CompletionModal'
 
 import { DemoBanner, AuthPromptModal, DemoTour, DemoCtaBanner } from './components/DemoOverlay';
 import { MOCK_PROFESSIONALS, MOCK_PRODUCTS } from './data/mockData';
+import { Landing } from './pages/Landing';
 
 // --- Helper Components ---
 
@@ -458,6 +459,7 @@ export default function App() {
   const [authResetMessage, setAuthResetMessage] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
   const [showIntro, setShowIntro] = useState(() => !sessionStorage.getItem('intro_shown'));
+  const [showLanding, setShowLanding] = useState(() => !sessionStorage.getItem('landing_seen'));
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [showDemoTour, setShowDemoTour] = useState(false);
   const [showAuthPromptDemo, setShowAuthPromptDemo] = useState(false);
@@ -1820,6 +1822,17 @@ export default function App() {
   if (showIntro) {
     return (
       <IntroAnimation onComplete={() => { sessionStorage.setItem('intro_shown', '1'); setShowIntro(false); }} />
+    );
+  }
+
+  if (!currentUser && !isDemoMode && showLanding) {
+    return (
+      <Landing
+        onEnterApp={() => {
+          sessionStorage.setItem('landing_seen', '1');
+          setShowLanding(false);
+        }}
+      />
     );
   }
 
