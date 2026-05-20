@@ -459,7 +459,7 @@ export default function App() {
   const [authResetMessage, setAuthResetMessage] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
   const [showIntro, setShowIntro] = useState(() => !sessionStorage.getItem('intro_shown'));
-  const [showLanding, setShowLanding] = useState(() => !sessionStorage.getItem('landing_seen'));
+  const [showLanding, setShowLanding] = useState(() => new URLSearchParams(window.location.search).has('landing') || !sessionStorage.getItem('landing_seen'));
   const [authResolved, setAuthResolved] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [showDemoTour, setShowDemoTour] = useState(false);
