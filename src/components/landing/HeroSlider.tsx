@@ -219,16 +219,14 @@ interface HeroSliderProps {
 
 export function HeroSlider({ onExplore }: HeroSliderProps) {
   const [current, setCurrent] = useState(0);
-  const [paused, setPaused] = useState(false);
 
   const next = useCallback(() => setCurrent(c => (c + 1) % SLIDES.length), []);
   const goTo = useCallback((i: number) => setCurrent(i), []);
 
   useEffect(() => {
-    if (paused) return;
     const t = setTimeout(next, SLIDE_DURATION);
     return () => clearTimeout(t);
-  }, [current, paused, next]);
+  }, [current, next]);
 
   const slide = SLIDES[current];
   const Visual = slide.Visual;
@@ -237,8 +235,6 @@ export function HeroSlider({ onExplore }: HeroSliderProps) {
     <section
       className="relative min-h-screen flex flex-col overflow-hidden"
       style={{ background: '#050505' }}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
     >
       {/* Ambient gradient — shifts per slide */}
       <motion.div
