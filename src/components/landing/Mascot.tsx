@@ -49,11 +49,10 @@ export function Mascot({ pose = 'pointing', size = 160, className = '' }: Mascot
   return (
     <motion.div
       className={`select-none ${className}`}
-      style={{ width: size, height: size * 1.4 }}
+      style={{ width: size, height: size * 1.4, filter: 'drop-shadow(0 0 20px rgba(255,122,0,0.35))' }}
       animate={{ y: [0, -8, 0] }}
       transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
       whileHover={{ scale: 1.05 }}
-      style={{ filter: 'drop-shadow(0 0 20px rgba(255,122,0,0.35))' }}
     >
       <svg
         viewBox="0 0 140 196"

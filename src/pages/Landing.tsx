@@ -15,7 +15,8 @@ interface LandingProps {
   onEnterApp: () => void;
 }
 
-const FONT = 'Syne, system-ui, sans-serif';
+const DISPLAY = '"Bricolage Grotesque", system-ui, sans-serif';
+const BODY = '"DM Sans", system-ui, sans-serif';
 
 function LandingNav({ onEnterApp }: { onEnterApp: () => void }) {
   const [scrolled, setScrolled] = useState(false);
@@ -50,7 +51,7 @@ function LandingNav({ onEnterApp }: { onEnterApp: () => void }) {
               <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
             </svg>
           </div>
-          <span className="font-black text-white text-lg tracking-tight" style={{ fontFamily: FONT }}>
+          <span className="font-black text-white text-lg tracking-tight" style={{ fontFamily: DISPLAY }}>
             Facilita<span style={{ color: '#FF7A00' }}>Aí</span>
           </span>
         </div>
@@ -73,7 +74,7 @@ function LandingNav({ onEnterApp }: { onEnterApp: () => void }) {
           style={{
             background: 'linear-gradient(135deg, #FF7A00, #FF5500)',
             boxShadow: '0 0 20px rgba(255,122,0,0.2)',
-            fontFamily: FONT,
+            fontFamily: DISPLAY,
           }}
         >
           Acessar app
@@ -89,8 +90,6 @@ export function Landing({ onEnterApp }: LandingProps) {
     const style = document.createElement('style');
     style.id = 'landing-styles';
     style.textContent = `
-      @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&display=swap');
-
       .landing-reveal {
         opacity: 0;
         transform: translateY(28px);
@@ -118,7 +117,7 @@ export function Landing({ onEnterApp }: LandingProps) {
   return (
     <div
       className="min-h-screen overflow-x-hidden"
-      style={{ background: '#050505', color: 'white', fontFamily: 'DM Sans, system-ui, sans-serif' }}
+      style={{ background: '#050505', color: 'white', fontFamily: BODY }}
     >
       {/* Grain overlay */}
       <div
