@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, ReactNode } from 'react';
 import { motion } from 'motion/react';
-import { ArrowRight, Instagram, Phone } from 'lucide-react';
+import { ArrowRight, Instagram } from 'lucide-react';
 
 const OG = '#FF7A00';
 const DISPLAY = '"Bricolage Grotesque", system-ui, sans-serif';
@@ -462,15 +462,15 @@ export function LandingFooter() {
           </div>
 
           <div style={{ display: 'flex', gap: 8 }}>
-            {[Instagram, Phone].map((Icon, i) => (
-              <a
-                key={i} href="#"
-                className="hover:text-white transition-all hover:scale-110"
-                style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
-              >
-                <Icon size={15} />
-              </a>
-            ))}
+            <a
+              href="https://instagram.com/facilitaai.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white transition-all hover:scale-110"
+              style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+            >
+              <Instagram size={15} />
+            </a>
           </div>
         </div>
 
