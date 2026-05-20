@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { HeroSlider } from '../components/landing/HeroSlider';
+import { FloatingAssistant } from '../components/landing/FloatingAssistant';
 import {
   HowItWorks,
+  TrustSection,
   Features,
   MarketplaceSection,
   ForProfessionals,
+  PlansSection,
+  FAQSection,
   DemoSection,
   FinalCTA,
   LandingFooter,
@@ -131,12 +135,16 @@ export function Landing({ onEnterApp }: LandingProps) {
       <LandingNav onEnterApp={onEnterApp} />
       <HeroSlider onExplore={onEnterApp} />
       <HowItWorks />
+      <TrustSection />
       <Features />
       <MarketplaceSection />
       <ForProfessionals onSignUp={onEnterApp} />
+      <PlansSection />
+      <FAQSection />
       <DemoSection onExplore={onEnterApp} />
-      <FinalCTA onExplore={onEnterApp} />
+      <FinalCTA onExplore={onEnterApp} onSignUp={onEnterApp} />
       <LandingFooter />
+      <FloatingAssistant onExplore={onEnterApp} />
     </div>
   );
 }

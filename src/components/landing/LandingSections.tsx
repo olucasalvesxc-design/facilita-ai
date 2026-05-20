@@ -1,8 +1,10 @@
-import React, { useEffect, useRef, ReactNode } from 'react';
-import { motion } from 'motion/react';
+import React, { useEffect, useRef, useState, ReactNode } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { ArrowRight, Instagram } from 'lucide-react';
+import { PLAN_CHECKOUT_URLS } from '../../constants';
 
 const OG = '#FF7A00';
+const GOLD = '#F59E0B';
 const DISPLAY = '"Bricolage Grotesque", system-ui, sans-serif';
 const BODY = '"DM Sans", system-ui, sans-serif';
 
@@ -387,15 +389,327 @@ export function DemoSection({ onExplore }: { onExplore?: () => void }) {
   );
 }
 
+// ── Trust / Proof ─────────────────────────────────────────────────────────────
+
+const STATS = [
+  { value: '500+', label: 'Profissionais verificados' },
+  { value: '4.8★', label: 'Avaliação média' },
+  { value: 'WhatsApp', label: 'Contato direto' },
+  { value: 'GPS', label: 'Próximos a você' },
+];
+
+const TESTIMONIALS = [
+  {
+    name: 'Fernanda Costa', role: 'Cabeleireira',
+    text: 'Comecei a receber clientes em menos de uma semana. O agendamento online mudou minha rotina completamente.',
+    stars: 5,
+  },
+  {
+    name: 'Lucas Mendes', role: 'Eletricista',
+    text: 'A visibilidade que o Ultra me deu é incrível. Minha agenda está sempre cheia e ainda vendo produtos pelo app.',
+    stars: 5,
+  },
+  {
+    name: 'Ana Rodrigues', role: 'Personal Trainer',
+    text: 'Vendo planos de treino e consigo novos alunos pelo marketplace. Melhor investimento que fiz no meu negócio.',
+    stars: 5,
+  },
+];
+
+export function TrustSection() {
+  return (
+    <section style={{ padding: '0 24px 100px', maxWidth: 1100, margin: '0 auto' }}>
+      {/* Stats */}
+      <Reveal>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4" style={{ marginBottom: 56 }}>
+          {STATS.map((s, i) => (
+            <div
+              key={i}
+              className="landing-card"
+              style={{ background: '#0b0b0b', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 20, padding: '24px 20px', textAlign: 'center' }}
+            >
+              <div style={{ fontSize: 26, fontWeight: 900, color: OG, fontFamily: DISPLAY, marginBottom: 6, letterSpacing: '-0.02em' }}>{s.value}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', fontFamily: BODY, lineHeight: 1.4 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </Reveal>
+
+      {/* Testimonials */}
+      <div className="grid md:grid-cols-3 gap-4">
+        {TESTIMONIALS.map((t, i) => (
+          <Reveal key={i} delay={i * 80}>
+            <div
+              className="landing-card"
+              style={{ background: '#0b0b0b', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 22, padding: '26px 24px', height: '100%' }}
+            >
+              <div style={{ fontSize: 14, color: GOLD, marginBottom: 14, letterSpacing: 2 }}>{'★'.repeat(t.stars)}</div>
+              <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7, marginBottom: 20, fontFamily: BODY }}>"{t.text}"</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,122,0,0.12)', border: '1px solid rgba(255,122,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: OG, fontFamily: DISPLAY }}>{t.name[0]}</span>
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'white', fontFamily: DISPLAY }}>{t.name}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontFamily: BODY }}>{t.role}</div>
+                </div>
+              </div>
+            </div>
+          </Reveal>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ── Plans ─────────────────────────────────────────────────────────────────────
+
+const PLANS = [
+  {
+    id: 'start', name: 'Start', price: '9,90', color: '#9ca3af',
+    desc: 'Para começar sua presença digital',
+    features: ['Perfil profissional', 'Até 4 posts', 'Produtos no marketplace', 'WhatsApp no perfil'],
+    cta: 'Começar agora',
+    url: PLAN_CHECKOUT_URLS.start,
+  },
+  {
+    id: 'pro', name: 'Pro', price: '27,90', color: OG,
+    badge: 'Mais popular', highlight: true,
+    desc: 'Para profissionais que querem crescer',
+    features: ['Até 20 posts', 'Agenda online', 'Link público de agendamento', 'Mais visibilidade nas buscas'],
+    cta: 'Escolher Pro',
+    url: PLAN_CHECKOUT_URLS.pro,
+  },
+  {
+    id: 'ultra', name: 'Ultra', price: '87,90', color: GOLD,
+    badge: 'Premium', premium: true,
+    desc: 'Para quem quer ser referência',
+    features: ['Posts ilimitados', 'Perfil verificado ✓', 'Destaque na home', 'Prioridade nas buscas'],
+    cta: 'Ser Ultra',
+    url: PLAN_CHECKOUT_URLS.ultra,
+  },
+] as const;
+
+export function PlansSection() {
+  return (
+    <section id="planos" style={{ padding: '0 24px 100px', maxWidth: 1100, margin: '0 auto' }}>
+      <Reveal style={{ textAlign: 'center', marginBottom: 56 }}>
+        <Tag>Planos</Tag>
+        <H2>
+          Escolha como quer<br />
+          <span style={{ color: OG }}>crescer.</span>
+        </H2>
+        <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.3)', marginTop: 12, fontFamily: BODY }}>
+          Comece com 7 dias grátis. Sem cartão de crédito.
+        </p>
+      </Reveal>
+
+      <div className="grid md:grid-cols-3 gap-5 items-end">
+        {PLANS.map((plan, i) => {
+          const isHighlight = 'highlight' in plan && plan.highlight;
+          const isPremium = 'premium' in plan && plan.premium;
+          const badge = 'badge' in plan ? plan.badge : undefined;
+
+          return (
+            <Reveal key={plan.id} delay={i * 100}>
+              <motion.div
+                whileHover={{ y: -6 }}
+                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                style={{
+                  background: isHighlight
+                    ? 'rgba(255,122,0,0.05)'
+                    : isPremium ? 'rgba(245,158,11,0.04)' : '#0b0b0b',
+                  border: `1px solid ${isHighlight ? 'rgba(255,122,0,0.35)' : isPremium ? 'rgba(245,158,11,0.28)' : 'rgba(255,255,255,0.07)'}`,
+                  borderRadius: 24,
+                  padding: isHighlight ? '36px 28px' : '28px 24px',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  boxShadow: isHighlight
+                    ? '0 0 80px rgba(255,122,0,0.07)'
+                    : isPremium ? '0 0 80px rgba(245,158,11,0.05)' : 'none',
+                }}
+              >
+                {/* Glow top line */}
+                {(isHighlight || isPremium) && (
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(to right, transparent, ${plan.color}, transparent)`, opacity: 0.6 }} />
+                )}
+
+                {/* Badge */}
+                {badge && (
+                  <div style={{
+                    position: 'absolute', top: isHighlight ? 18 : 14, right: 18,
+                    fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
+                    textTransform: 'uppercase', padding: '4px 10px', borderRadius: 100,
+                    background: `${plan.color}15`, color: plan.color,
+                    border: `1px solid ${plan.color}30`, fontFamily: BODY,
+                  }}>{badge}</div>
+                )}
+
+                {/* Name */}
+                <div style={{ marginBottom: 20 }}>
+                  <h3 style={{ fontSize: 22, fontWeight: 800, color: plan.color, fontFamily: DISPLAY, letterSpacing: '-0.02em', marginBottom: 4 }}>{plan.name}</h3>
+                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', fontFamily: BODY }}>{plan.desc}</p>
+                </div>
+
+                {/* Price */}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, marginBottom: 28 }}>
+                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', fontFamily: BODY }}>R$</span>
+                  <span style={{ fontSize: 42, fontWeight: 900, color: 'white', fontFamily: DISPLAY, letterSpacing: '-0.04em', lineHeight: 1 }}>{plan.price}</span>
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', fontFamily: BODY }}>/mês</span>
+                </div>
+
+                {/* Features */}
+                <div style={{ marginBottom: 28, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {plan.features.map((f, j) => (
+                    <div key={j} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 18, height: 18, borderRadius: '50%', background: `${plan.color}14`, border: `1px solid ${plan.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke={plan.color} strokeWidth="3.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+                      </div>
+                      <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontFamily: BODY }}>{f}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* CTA */}
+                <motion.a
+                  href={plan.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  style={{
+                    display: 'block', textAlign: 'center',
+                    padding: '13px 0', borderRadius: 14,
+                    background: isHighlight
+                      ? `linear-gradient(135deg, ${OG}, #FF5500)`
+                      : isPremium
+                        ? `linear-gradient(135deg, ${GOLD}, #D97706)`
+                        : 'transparent',
+                    border: isHighlight || isPremium ? 'none' : '1px solid rgba(255,255,255,0.12)',
+                    color: 'white', fontSize: 12, fontWeight: 700,
+                    letterSpacing: '0.08em', textTransform: 'uppercase',
+                    textDecoration: 'none', fontFamily: DISPLAY,
+                    boxShadow: isHighlight
+                      ? '0 0 30px rgba(255,122,0,0.18)'
+                      : isPremium ? '0 0 30px rgba(245,158,11,0.12)' : 'none',
+                  }}
+                >
+                  {plan.cta}
+                </motion.a>
+              </motion.div>
+            </Reveal>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+// ── FAQ ───────────────────────────────────────────────────────────────────────
+
+const FAQ_ITEMS = [
+  {
+    q: 'O Facilita Aí é gratuito para usuários?',
+    a: 'Sim! Para quem busca serviços, o app é 100% gratuito. Você cria sua conta, explora profissionais, agenda e compra sem pagar nada.',
+  },
+  {
+    q: 'Como me torno profissional?',
+    a: 'Basta criar uma conta, completar seu perfil profissional e escolher um plano. Em minutos você já está visível para clientes na sua região.',
+  },
+  {
+    q: 'Posso vender produtos pelo app?',
+    a: 'Sim! Nos planos Start, Pro e Ultra você pode listar produtos no marketplace e vender diretamente, com contato via WhatsApp integrado.',
+  },
+  {
+    q: 'Como funciona o agendamento?',
+    a: 'Nos planos Pro e Ultra você tem uma agenda online com horários em tempo real. Clientes agendam direto pelo app e você recebe notificação instantânea.',
+  },
+  {
+    q: 'Como funciona o SOS?',
+    a: 'A seção SOS conecta você rapidamente com serviços de emergência (SAMU, Bombeiros, Polícia) e profissionais disponíveis urgentemente na sua região.',
+  },
+  {
+    q: 'Preciso baixar um aplicativo?',
+    a: 'Não! O Facilita Aí é um PWA — funciona direto no navegador do celular ou computador. Você pode instalar na tela inicial sem precisar da App Store ou Play Store.',
+  },
+];
+
+export function FAQSection() {
+  const [open, setOpen] = useState<number | null>(null);
+
+  return (
+    <section style={{ padding: '0 24px 100px', maxWidth: 780, margin: '0 auto' }}>
+      <Reveal style={{ textAlign: 'center', marginBottom: 56 }}>
+        <Tag>Dúvidas frequentes</Tag>
+        <H2>Perguntas <span style={{ color: OG }}>frequentes</span></H2>
+      </Reveal>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {FAQ_ITEMS.map((item, i) => (
+          <Reveal key={i} delay={i * 45}>
+            <div
+              style={{
+                background: '#0b0b0b',
+                border: `1px solid ${open === i ? 'rgba(255,122,0,0.22)' : 'rgba(255,255,255,0.06)'}`,
+                borderRadius: 16, overflow: 'hidden',
+                transition: 'border-color 0.3s ease',
+              }}
+            >
+              <button
+                onClick={() => setOpen(open === i ? null : i)}
+                style={{
+                  width: '100%', padding: '18px 22px',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
+                }}
+              >
+                <span style={{
+                  fontSize: 14, fontWeight: 700,
+                  color: open === i ? OG : 'white',
+                  fontFamily: DISPLAY, letterSpacing: '-0.01em',
+                  transition: 'color 0.3s', paddingRight: 16,
+                }}>
+                  {item.q}
+                </span>
+                <motion.span
+                  animate={{ rotate: open === i ? 180 : 0 }}
+                  transition={{ duration: 0.25 }}
+                  style={{ color: open === i ? OG : 'rgba(255,255,255,0.25)', flexShrink: 0, fontSize: 16 }}
+                >↓</motion.span>
+              </button>
+
+              <AnimatePresence initial={false}>
+                {open === i && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <p style={{ padding: '0 22px 20px', fontSize: 14, color: 'rgba(255,255,255,0.45)', lineHeight: 1.75, fontFamily: BODY }}>
+                      {item.a}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </Reveal>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 // ── Final CTA ─────────────────────────────────────────────────────────────────
 
-export function FinalCTA({ onExplore }: { onExplore?: () => void }) {
+export function FinalCTA({ onExplore, onSignUp }: { onExplore?: () => void; onSignUp?: () => void }) {
   return (
     <section style={{ padding: '80px 24px 100px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse 70% 60% at 50% 50%, rgba(255,122,0,0.06) 0%, transparent 65%)' }} />
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(to right, transparent, rgba(255,122,0,0.15), transparent)' }} />
 
-      <Reveal style={{ position: 'relative', maxWidth: 680, margin: '0 auto' }}>
+      <Reveal style={{ position: 'relative', maxWidth: 720, margin: '0 auto' }}>
         <motion.div
           style={{ width: 72, height: 72, borderRadius: 22, background: OG, margin: '0 auto 32px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 80px rgba(255,122,0,0.35)' }}
           animate={{ scale: [1, 1.06, 1] }}
@@ -406,28 +720,40 @@ export function FinalCTA({ onExplore }: { onExplore?: () => void }) {
           </svg>
         </motion.div>
 
-        <h2 style={{ fontFamily: DISPLAY, fontSize: 'clamp(2.5rem, 7vw, 5rem)', fontWeight: 800, color: 'white', lineHeight: 1.02, letterSpacing: '-0.035em', marginBottom: 16 }}>
-          Comece a aparecer<br />
-          <span style={{ color: OG }}>hoje.</span>
+        <h2 style={{ fontFamily: DISPLAY, fontSize: 'clamp(2.4rem, 6.5vw, 4.5rem)', fontWeight: 800, color: 'white', lineHeight: 1.05, letterSpacing: '-0.035em', marginBottom: 16 }}>
+          Comece a aparecer para quem<br />
+          está <span style={{ color: OG }}>perto de você.</span>
         </h2>
-        <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.3)', lineHeight: 1.65, maxWidth: 380, margin: '0 auto 40px', fontFamily: BODY }}>
-          Milhares de pessoas procurando serviços perto delas. Esteja visível agora.
+        <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.3)', lineHeight: 1.65, maxWidth: 400, margin: '0 auto 40px', fontFamily: BODY }}>
+          Milhares de pessoas procurando serviços na sua região agora mesmo.
         </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <button
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <motion.button
+            onClick={onSignUp}
+            whileHover={{ scale: 1.03, boxShadow: '0 0 80px rgba(255,122,0,0.4), 0 8px 30px rgba(0,0,0,0.3)' }}
+            whileTap={{ scale: 0.97 }}
+            className="w-full sm:w-auto font-black uppercase text-sm tracking-widest text-white px-9 py-4 rounded-2xl"
+            style={{ background: `linear-gradient(135deg, ${OG}, #FF5500)`, boxShadow: '0 0 50px rgba(255,122,0,0.25)', fontFamily: DISPLAY, border: 'none', cursor: 'pointer' }}
+          >
+            Criar conta
+          </motion.button>
+          <motion.button
+            onClick={() => document.getElementById('planos')?.scrollIntoView({ behavior: 'smooth' })}
+            whileHover={{ borderColor: 'rgba(255,122,0,0.35)', color: 'white' }}
+            className="w-full sm:w-auto font-medium text-sm px-9 py-4 rounded-2xl"
+            style={{ color: 'rgba(255,255,255,0.45)', fontFamily: BODY, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', cursor: 'pointer', transition: 'all 0.25s' }}
+          >
+            Ver planos
+          </motion.button>
+          <motion.button
             onClick={onExplore}
-            className="w-full sm:w-auto font-black uppercase text-sm tracking-widest text-white px-10 py-4 rounded-2xl transition-all hover:scale-[1.02] active:scale-95"
-            style={{ background: `linear-gradient(135deg, ${OG}, #FF5500)`, boxShadow: '0 0 60px rgba(255,122,0,0.3), 0 8px 30px rgba(0,0,0,0.3)', fontFamily: DISPLAY }}
+            whileHover={{ borderColor: 'rgba(255,122,0,0.35)', color: 'white' }}
+            className="w-full sm:w-auto font-medium text-sm px-9 py-4 rounded-2xl"
+            style={{ color: 'rgba(255,255,255,0.45)', fontFamily: BODY, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', cursor: 'pointer', transition: 'all 0.25s' }}
           >
-            Entrar no Facilita Aí
-          </button>
-          <button
-            className="w-full sm:w-auto font-medium text-sm px-10 py-4 rounded-2xl transition-all hover:text-white"
-            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: BODY, border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.03)' }}
-            onClick={() => document.getElementById('profissionais')?.scrollIntoView({ behavior: 'smooth' })}
-          >
-            Sou profissional
-          </button>
+            Explorar demo
+          </motion.button>
         </div>
       </Reveal>
     </section>
